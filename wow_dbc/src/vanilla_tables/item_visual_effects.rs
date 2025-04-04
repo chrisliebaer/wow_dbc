@@ -7,6 +7,7 @@ use crate::header::{
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemVisualEffects {
     pub rows: Vec<ItemVisualEffectsRow>,
 }
@@ -15,6 +16,8 @@ impl DbcTable for ItemVisualEffects {
     type Row = ItemVisualEffectsRow;
 
     const FILENAME: &'static str = "ItemVisualEffects.dbc";
+    const FIELD_COUNT: usize = 2;
+    const ROW_SIZE: usize = 8;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -24,19 +27,19 @@ impl DbcTable for ItemVisualEffects {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 8 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 8,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 2 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 2,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -74,7 +77,7 @@ impl DbcTable for ItemVisualEffects {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 2,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 8,
             string_block_size: self.string_block_size(),
         };
@@ -140,6 +143,7 @@ impl ItemVisualEffects {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemVisualEffectsKey {
     pub id: u32
 }
@@ -219,8 +223,23 @@ impl TryFrom<isize> for ItemVisualEffectsKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemVisualEffectsRow {
     pub id: ItemVisualEffectsKey,
     pub model_path: String,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn item_visual_effects() {
+        let contents = include_bytes!("../../../vanilla-dbc/ItemVisualEffects.dbc");
+        let actual = ItemVisualEffects::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = ItemVisualEffects::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

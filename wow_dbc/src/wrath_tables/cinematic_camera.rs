@@ -8,6 +8,7 @@ use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicCamera {
     pub rows: Vec<CinematicCameraRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for CinematicCamera {
     type Row = CinematicCameraRow;
 
     const FILENAME: &'static str = "CinematicCamera.dbc";
+    const FIELD_COUNT: usize = 7;
+    const ROW_SIZE: usize = 28;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for CinematicCamera {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 28 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 28,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 7 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 7,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -87,7 +90,7 @@ impl DbcTable for CinematicCamera {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 7,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 28,
             string_block_size: self.string_block_size(),
         };
@@ -165,6 +168,7 @@ impl CinematicCamera {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicCameraKey {
     pub id: i32
 }
@@ -242,6 +246,7 @@ impl TryFrom<isize> for CinematicCameraKey {
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicCameraRow {
     pub id: CinematicCameraKey,
     pub model: String,
@@ -250,3 +255,17 @@ pub struct CinematicCameraRow {
     pub origin_facing: f32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn cinematic_camera() {
+        let contents = include_bytes!("../../../wrath-dbc/CinematicCamera.dbc");
+        let actual = CinematicCamera::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = CinematicCamera::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

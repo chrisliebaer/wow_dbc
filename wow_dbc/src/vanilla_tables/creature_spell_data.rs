@@ -7,6 +7,7 @@ use crate::header::{
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSpellData {
     pub rows: Vec<CreatureSpellDataRow>,
 }
@@ -15,6 +16,8 @@ impl DbcTable for CreatureSpellData {
     type Row = CreatureSpellDataRow;
 
     const FILENAME: &'static str = "CreatureSpellData.dbc";
+    const FIELD_COUNT: usize = 9;
+    const ROW_SIZE: usize = 36;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -24,19 +27,19 @@ impl DbcTable for CreatureSpellData {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 36 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 36,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 9 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 9,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -73,7 +76,7 @@ impl DbcTable for CreatureSpellData {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 9,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 36,
             string_block_size: 1,
         };
@@ -119,6 +122,7 @@ impl Indexable for CreatureSpellData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSpellDataKey {
     pub id: u32
 }
@@ -198,9 +202,24 @@ impl TryFrom<isize> for CreatureSpellDataKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSpellDataRow {
     pub id: CreatureSpellDataKey,
     pub spell: [u32; 4],
     pub cooldown_time_1: [i32; 4],
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn creature_spell_data() {
+        let contents = include_bytes!("../../../vanilla-dbc/CreatureSpellData.dbc");
+        let actual = CreatureSpellData::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = CreatureSpellData::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

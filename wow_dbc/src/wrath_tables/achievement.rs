@@ -11,6 +11,7 @@ use crate::wrath_tables::spell_icon::SpellIconKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Achievement {
     pub rows: Vec<AchievementRow>,
 }
@@ -19,6 +20,8 @@ impl DbcTable for Achievement {
     type Row = AchievementRow;
 
     const FILENAME: &'static str = "Achievement.dbc";
+    const FIELD_COUNT: usize = 62;
+    const ROW_SIZE: usize = 248;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -28,19 +31,19 @@ impl DbcTable for Achievement {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 248 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 248,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 62 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 62,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -123,7 +126,7 @@ impl DbcTable for Achievement {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 62,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 248,
             string_block_size: self.string_block_size(),
         };
@@ -223,6 +226,7 @@ impl Achievement {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AchievementKey {
     pub id: i32
 }
@@ -300,6 +304,7 @@ impl TryFrom<isize> for AchievementKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AchievementRow {
     pub id: AchievementKey,
     pub faction: FactionKey,
@@ -317,3 +322,17 @@ pub struct AchievementRow {
     pub shares_criteria: AchievementKey,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn achievement() {
+        let contents = include_bytes!("../../../wrath-dbc/Achievement.dbc");
+        let actual = Achievement::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = Achievement::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

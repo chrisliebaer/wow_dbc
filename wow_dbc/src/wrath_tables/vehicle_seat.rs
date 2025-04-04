@@ -8,6 +8,7 @@ use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VehicleSeat {
     pub rows: Vec<VehicleSeatRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for VehicleSeat {
     type Row = VehicleSeatRow;
 
     const FILENAME: &'static str = "VehicleSeat.dbc";
+    const FIELD_COUNT: usize = 58;
+    const ROW_SIZE: usize = 232;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for VehicleSeat {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 232 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 232,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 58 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 58,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -286,7 +289,7 @@ impl DbcTable for VehicleSeat {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 58,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 232,
             string_block_size: 1,
         };
@@ -488,6 +491,7 @@ impl Indexable for VehicleSeat {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VehicleSeatKey {
     pub id: i32
 }
@@ -565,6 +569,7 @@ impl TryFrom<isize> for VehicleSeatKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VehicleSeatRow {
     pub id: VehicleSeatKey,
     pub field_3_3_5_12213_001: f32,
@@ -624,3 +629,17 @@ pub struct VehicleSeatRow {
     pub field_3_3_5_12213_055: f32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn vehicle_seat() {
+        let contents = include_bytes!("../../../wrath-dbc/VehicleSeat.dbc");
+        let actual = VehicleSeat::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = VehicleSeat::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}
