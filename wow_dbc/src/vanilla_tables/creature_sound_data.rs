@@ -8,6 +8,7 @@ use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSoundData {
     pub rows: Vec<CreatureSoundDataRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for CreatureSoundData {
     type Row = CreatureSoundDataRow;
 
     const FILENAME: &'static str = "CreatureSoundData.dbc";
+    const FIELD_COUNT: usize = 30;
+    const ROW_SIZE: usize = 120;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for CreatureSoundData {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 120 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 120,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 30 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 30,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -182,7 +185,7 @@ impl DbcTable for CreatureSoundData {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 30,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 120,
             string_block_size: 1,
         };
@@ -303,6 +306,7 @@ impl Indexable for CreatureSoundData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSoundDataKey {
     pub id: u32
 }
@@ -382,6 +386,7 @@ impl TryFrom<isize> for CreatureSoundDataKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSoundDataRow {
     pub id: CreatureSoundDataKey,
     pub sound_exertion: SoundEntriesKey,
@@ -415,3 +420,17 @@ pub struct CreatureSoundDataRow {
     pub submerged_sound: SoundEntriesKey,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn creature_sound_data() {
+        let contents = include_bytes!("../../../vanilla-dbc/CreatureSoundData.dbc");
+        let actual = CreatureSoundData::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = CreatureSoundData::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

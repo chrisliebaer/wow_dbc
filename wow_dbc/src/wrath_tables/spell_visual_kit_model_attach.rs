@@ -9,6 +9,7 @@ use crate::wrath_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitModelAttach {
     pub rows: Vec<SpellVisualKitModelAttachRow>,
 }
@@ -17,6 +18,8 @@ impl DbcTable for SpellVisualKitModelAttach {
     type Row = SpellVisualKitModelAttachRow;
 
     const FILENAME: &'static str = "SpellVisualKitModelAttach.dbc";
+    const FIELD_COUNT: usize = 10;
+    const ROW_SIZE: usize = 40;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -26,19 +29,19 @@ impl DbcTable for SpellVisualKitModelAttach {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 40 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 40,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 10 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 10,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -95,7 +98,7 @@ impl DbcTable for SpellVisualKitModelAttach {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 10,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 40,
             string_block_size: 1,
         };
@@ -153,6 +156,7 @@ impl Indexable for SpellVisualKitModelAttach {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitModelAttachKey {
     pub id: i32
 }
@@ -230,6 +234,7 @@ impl TryFrom<isize> for SpellVisualKitModelAttachKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitModelAttachRow {
     pub id: SpellVisualKitModelAttachKey,
     pub parent_spell_visual_kit_id: SpellVisualKitKey,
@@ -241,3 +246,17 @@ pub struct SpellVisualKitModelAttachRow {
     pub roll: f32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn spell_visual_kit_model_attach() {
+        let contents = include_bytes!("../../../wrath-dbc/SpellVisualKitModelAttach.dbc");
+        let actual = SpellVisualKitModelAttach::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = SpellVisualKitModelAttach::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

@@ -11,6 +11,7 @@ use crate::wrath_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelData {
     pub rows: Vec<CreatureModelDataRow>,
 }
@@ -19,6 +20,8 @@ impl DbcTable for CreatureModelData {
     type Row = CreatureModelDataRow;
 
     const FILENAME: &'static str = "CreatureModelData.dbc";
+    const FIELD_COUNT: usize = 28;
+    const ROW_SIZE: usize = 112;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -28,19 +31,19 @@ impl DbcTable for CreatureModelData {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 112 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 112,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 28 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 28,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -182,7 +185,7 @@ impl DbcTable for CreatureModelData {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 28,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 112,
             string_block_size: self.string_block_size(),
         };
@@ -326,6 +329,7 @@ impl CreatureModelData {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelDataKey {
     pub id: i32
 }
@@ -403,6 +407,7 @@ impl TryFrom<isize> for CreatureModelDataKey {
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelDataRow {
     pub id: CreatureModelDataKey,
     pub flags: i32,
@@ -434,3 +439,17 @@ pub struct CreatureModelDataRow {
     pub missile_collision_raise: f32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn creature_model_data() {
+        let contents = include_bytes!("../../../wrath-dbc/CreatureModelData.dbc");
+        let actual = CreatureModelData::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = CreatureModelData::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

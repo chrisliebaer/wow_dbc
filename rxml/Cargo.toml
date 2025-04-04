@@ -6,6 +6,10 @@ edition = "2021"
 publish = false
 metadata.release.release = false
 
+[features]
+# enables inclusion of tests in generated code
+tests = []
+
 [dependencies]
 heck = "0.4.0"
 roxmltree = "0.15.0"

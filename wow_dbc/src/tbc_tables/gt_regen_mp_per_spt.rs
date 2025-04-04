@@ -5,6 +5,7 @@ use crate::header::{
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtRegenMPPerSpt {
     pub rows: Vec<gtRegenMPPerSptRow>,
 }
@@ -13,6 +14,8 @@ impl DbcTable for gtRegenMPPerSpt {
     type Row = gtRegenMPPerSptRow;
 
     const FILENAME: &'static str = "gtRegenMPPerSpt.dbc";
+    const FIELD_COUNT: usize = 1;
+    const ROW_SIZE: usize = 4;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -22,19 +25,19 @@ impl DbcTable for gtRegenMPPerSpt {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 4 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 4,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 1 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 1,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -63,7 +66,7 @@ impl DbcTable for gtRegenMPPerSpt {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 1,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 4,
             string_block_size: 1,
         };
@@ -84,7 +87,22 @@ impl DbcTable for gtRegenMPPerSpt {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtRegenMPPerSptRow {
     pub data: f32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn gt_regen_mp_per_spt() {
+        let contents = include_bytes!("../../../tbc-dbc/gtRegenMPPerSpt.dbc");
+        let actual = gtRegenMPPerSpt::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = gtRegenMPPerSpt::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

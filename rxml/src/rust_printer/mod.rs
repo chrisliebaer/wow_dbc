@@ -23,7 +23,8 @@ pub fn create_table(d: &DbcDescription, o: &Objects, version: DbcVersion) -> Wri
 
     create_row(&mut s, d, o);
 
-    create_test(&mut s, d, &version.test_dir_name());
+
+    create_test(&mut s, d, version);
 
     s
 }
@@ -143,6 +144,9 @@ fn print_derives(s: &mut Writer, fields: &[Field], derive_copy: bool) {
     }
 
     s.wln_no_indent(")]");
+
+    // add optional derive for serde
+    s.wln("#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]");
 }
 
 fn can_derive_copy(fields: &[Field]) -> bool {
@@ -223,6 +227,10 @@ fn create_primary_keys(s: &mut Writer, d: &DbcDescription) {
             s.wln("#[allow(non_camel_case_types)]");
         }
         s.wln("#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]");
+
+        // add optional derive for serde
+        s.wln("#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]");
+
         s.new_struct(key.ty().rust_str(), |s| {
             s.wln(format!("pub id: {}", native_ty));
         });
@@ -295,12 +303,7 @@ fn print_field_comment(s: &mut Writer, field: &Field) {
     s.wln(format!("// {}: {}", field.name(), field.ty().str()));
 }
 
-fn create_test(s: &mut Writer, d: &DbcDescription, test_dir_name: &str) {
-    const BUILD_TESTS: bool = false;
-    if !BUILD_TESTS {
-        return;
-    }
-
+fn create_test(s: &mut Writer, d: &DbcDescription, version: DbcVersion) {
     if d.name() == "CharacterCreateCameras"
         || d.name() == "SoundCharacterMacroLines"
         || d.name() == "SpellAuraNames"
@@ -320,6 +323,7 @@ fn create_test(s: &mut Writer, d: &DbcDescription, test_dir_name: &str) {
 
     let ty = d.name();
 
+    let test_dir_name = version.test_dir_name();
     s.wln(format!(
         "let contents = include_bytes!(\"../../../{test_dir_name}/{ty}.dbc\");",
     ));

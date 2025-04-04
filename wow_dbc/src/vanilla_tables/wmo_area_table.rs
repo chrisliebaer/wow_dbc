@@ -12,6 +12,7 @@ use crate::vanilla_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WMOAreaTable {
     pub rows: Vec<WMOAreaTableRow>,
 }
@@ -20,6 +21,8 @@ impl DbcTable for WMOAreaTable {
     type Row = WMOAreaTableRow;
 
     const FILENAME: &'static str = "WMOAreaTable.dbc";
+    const FIELD_COUNT: usize = 20;
+    const ROW_SIZE: usize = 80;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -29,19 +32,19 @@ impl DbcTable for WMOAreaTable {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 80 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 80,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 20 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 20,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -116,7 +119,7 @@ impl DbcTable for WMOAreaTable {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 20,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 80,
             string_block_size: self.string_block_size(),
         };
@@ -206,6 +209,7 @@ impl WMOAreaTable {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WMOAreaTableKey {
     pub id: u32
 }
@@ -285,6 +289,7 @@ impl TryFrom<isize> for WMOAreaTableKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WMOAreaTableRow {
     pub id: WMOAreaTableKey,
     pub wmo_id: u32,
@@ -300,3 +305,17 @@ pub struct WMOAreaTableRow {
     pub name: LocalizedString,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn wmo_area_table() {
+        let contents = include_bytes!("../../../vanilla-dbc/WMOAreaTable.dbc");
+        let actual = WMOAreaTable::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = WMOAreaTable::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

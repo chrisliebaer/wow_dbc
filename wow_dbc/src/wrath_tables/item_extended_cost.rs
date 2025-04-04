@@ -8,6 +8,7 @@ use crate::wrath_tables::item_purchase_group::ItemPurchaseGroupKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemExtendedCost {
     pub rows: Vec<ItemExtendedCostRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for ItemExtendedCost {
     type Row = ItemExtendedCostRow;
 
     const FILENAME: &'static str = "ItemExtendedCost.dbc";
+    const FIELD_COUNT: usize = 16;
+    const ROW_SIZE: usize = 64;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for ItemExtendedCost {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 64 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 64,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 16 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 16,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -94,7 +97,7 @@ impl DbcTable for ItemExtendedCost {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 16,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 64,
             string_block_size: 1,
         };
@@ -155,6 +158,7 @@ impl Indexable for ItemExtendedCost {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemExtendedCostKey {
     pub id: i32
 }
@@ -232,6 +236,7 @@ impl TryFrom<isize> for ItemExtendedCostKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemExtendedCostRow {
     pub id: ItemExtendedCostKey,
     pub honor_points: i32,
@@ -243,3 +248,17 @@ pub struct ItemExtendedCostRow {
     pub item_purchase_group: ItemPurchaseGroupKey,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn item_extended_cost() {
+        let contents = include_bytes!("../../../wrath-dbc/ItemExtendedCost.dbc");
+        let actual = ItemExtendedCost::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = ItemExtendedCost::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

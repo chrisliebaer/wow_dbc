@@ -9,6 +9,7 @@ use crate::tbc_tables::spell_icon::SpellIconKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftForm {
     pub rows: Vec<SpellShapeshiftFormRow>,
 }
@@ -17,6 +18,8 @@ impl DbcTable for SpellShapeshiftForm {
     type Row = SpellShapeshiftFormRow;
 
     const FILENAME: &'static str = "SpellShapeshiftForm.dbc";
+    const FIELD_COUNT: usize = 35;
+    const ROW_SIZE: usize = 140;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -26,19 +29,19 @@ impl DbcTable for SpellShapeshiftForm {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 140 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 140,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 35 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 35,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -101,7 +104,7 @@ impl DbcTable for SpellShapeshiftForm {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 35,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 140,
             string_block_size: self.string_block_size(),
         };
@@ -188,6 +191,7 @@ impl SpellShapeshiftForm {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftFormKey {
     pub id: i32
 }
@@ -265,6 +269,7 @@ impl TryFrom<isize> for SpellShapeshiftFormKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftFormRow {
     pub id: SpellShapeshiftFormKey,
     pub bonus_action_bar: i32,
@@ -277,3 +282,17 @@ pub struct SpellShapeshiftFormRow {
     pub preset_spell_id: [i32; 8],
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn spell_shapeshift_form() {
+        let contents = include_bytes!("../../../tbc-dbc/SpellShapeshiftForm.dbc");
+        let actual = SpellShapeshiftForm::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = SpellShapeshiftForm::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

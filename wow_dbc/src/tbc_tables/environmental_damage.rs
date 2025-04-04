@@ -8,6 +8,7 @@ use crate::tbc_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamage {
     pub rows: Vec<EnvironmentalDamageRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for EnvironmentalDamage {
     type Row = EnvironmentalDamageRow;
 
     const FILENAME: &'static str = "EnvironmentalDamage.dbc";
+    const FIELD_COUNT: usize = 3;
+    const ROW_SIZE: usize = 12;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for EnvironmentalDamage {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 12 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 12,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 3 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 3,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -74,7 +77,7 @@ impl DbcTable for EnvironmentalDamage {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 3,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 12,
             string_block_size: 1,
         };
@@ -114,6 +117,7 @@ impl Indexable for EnvironmentalDamage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamageKey {
     pub id: i32
 }
@@ -191,9 +195,24 @@ impl TryFrom<isize> for EnvironmentalDamageKey {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamageRow {
     pub id: EnvironmentalDamageKey,
     pub enum_id: i32,
     pub visualkit_id: SpellVisualKitKey,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn environmental_damage() {
+        let contents = include_bytes!("../../../tbc-dbc/EnvironmentalDamage.dbc");
+        let actual = EnvironmentalDamage::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = EnvironmentalDamage::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

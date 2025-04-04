@@ -8,6 +8,7 @@ use crate::wrath_tables::item::ItemKey;
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Stationery {
     pub rows: Vec<StationeryRow>,
 }
@@ -16,6 +17,8 @@ impl DbcTable for Stationery {
     type Row = StationeryRow;
 
     const FILENAME: &'static str = "Stationery.dbc";
+    const FIELD_COUNT: usize = 4;
+    const ROW_SIZE: usize = 16;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -25,19 +28,19 @@ impl DbcTable for Stationery {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 16 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 16,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 4 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 4,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -83,7 +86,7 @@ impl DbcTable for Stationery {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 4,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 16,
             string_block_size: self.string_block_size(),
         };
@@ -155,6 +158,7 @@ impl Stationery {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StationeryKey {
     pub id: i32
 }
@@ -232,6 +236,7 @@ impl TryFrom<isize> for StationeryKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StationeryRow {
     pub id: StationeryKey,
     pub item_id: ItemKey,
@@ -239,3 +244,17 @@ pub struct StationeryRow {
     pub flags: i32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn stationery() {
+        let contents = include_bytes!("../../../wrath-dbc/Stationery.dbc");
+        let actual = Stationery::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = Stationery::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

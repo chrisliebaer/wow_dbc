@@ -7,6 +7,7 @@ use crate::header::{
 use std::io::Write;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitAreaModel {
     pub rows: Vec<SpellVisualKitAreaModelRow>,
 }
@@ -15,6 +16,8 @@ impl DbcTable for SpellVisualKitAreaModel {
     type Row = SpellVisualKitAreaModelRow;
 
     const FILENAME: &'static str = "SpellVisualKitAreaModel.dbc";
+    const FIELD_COUNT: usize = 3;
+    const ROW_SIZE: usize = 12;
 
     fn rows(&self) -> &[Self::Row] { &self.rows }
     fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
@@ -24,19 +27,19 @@ impl DbcTable for SpellVisualKitAreaModel {
         b.read_exact(&mut header)?;
         let header = parse_header(&header)?;
 
-        if header.record_size != 12 {
+        if header.record_size != Self::ROW_SIZE as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::RecordSize {
-                    expected: 12,
+                    expected: Self::ROW_SIZE as u32,
                     actual: header.record_size,
                 },
             ));
         }
 
-        if header.field_count != 3 {
+        if header.field_count != Self::FIELD_COUNT as u32 {
             return Err(crate::DbcError::InvalidHeader(
                 crate::InvalidHeaderError::FieldCount {
-                    expected: 3,
+                    expected: Self::FIELD_COUNT as u32,
                     actual: header.field_count,
                 },
             ));
@@ -78,7 +81,7 @@ impl DbcTable for SpellVisualKitAreaModel {
     fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
         let header = DbcHeader {
             record_count: self.rows.len() as u32,
-            field_count: 3,
+            field_count: Self::FIELD_COUNT as u32,
             record_size: 12,
             string_block_size: self.string_block_size(),
         };
@@ -147,6 +150,7 @@ impl SpellVisualKitAreaModel {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitAreaModelKey {
     pub id: i32
 }
@@ -224,9 +228,24 @@ impl TryFrom<isize> for SpellVisualKitAreaModelKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitAreaModelRow {
     pub id: SpellVisualKitAreaModelKey,
     pub name: String,
     pub enum_id: i32,
 }
 
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn spell_visual_kit_area_model() {
+        let contents = include_bytes!("../../../wrath-dbc/SpellVisualKitAreaModel.dbc");
+        let actual = SpellVisualKitAreaModel::read(&mut contents.as_slice()).unwrap();
+        let mut v = Vec::with_capacity(contents.len());
+        actual.write(&mut v).unwrap();
+        let new = SpellVisualKitAreaModel::read(&mut v.as_slice()).unwrap();
+        assert_eq!(actual, new);
+    }
+}

@@ -81,13 +81,7 @@ pub(crate) mod header;
 #[cfg(feature = "vanilla")]
 pub mod vanilla_tables;
 
-#[allow(missing_docs, clippy::unnecessary_cast)]
-#[cfg(feature = "tbc")]
-pub mod tbc_tables;
 
-#[allow(missing_docs, clippy::unnecessary_cast)]
-#[cfg(feature = "wrath")]
-pub mod wrath_tables;
 
 mod tys;
 
@@ -104,6 +98,12 @@ pub trait DbcTable: Sized {
 
     /// The name of the DBC file _with_ `.dbc` at the end.
     const FILENAME: &'static str;
+
+    /// The number of fields per row.
+    const FIELD_COUNT: usize;
+
+    /// The size of each row in bytes.
+    const ROW_SIZE: usize;
 
     /// Array of all rows. Are not guaranteed to be in any order.
     fn rows(&self) -> &[Self::Row];
