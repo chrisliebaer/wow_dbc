@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::faction::FactionKey;
 use crate::vanilla_tables::faction_group::FactionGroupKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::PvpFlags;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FactionTemplate {
     pub rows: Vec<FactionTemplateRow>,
+}
+
+impl Into<VanillaTable> for FactionTemplate {
+    fn into(self) -> VanillaTable {
+        VanillaTable::FactionTemplate(self)
+    }
 }
 
 impl DbcTable for FactionTemplate {

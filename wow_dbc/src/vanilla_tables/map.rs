@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::area_table::AreaTableKey;
 use crate::vanilla_tables::loading_screens::LoadingScreensKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::InstanceType;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Map {
     pub rows: Vec<MapRow>,
+}
+
+impl Into<VanillaTable> for Map {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Map(self)
+    }
 }
 
 impl DbcTable for Map {

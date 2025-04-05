@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VocalUISounds {
     pub rows: Vec<VocalUISoundsRow>,
+}
+
+impl Into<TbcTable> for VocalUISounds {
+    fn into(self) -> TbcTable {
+        TbcTable::VocalUISounds(self)
+    }
 }
 
 impl DbcTable for VocalUISounds {

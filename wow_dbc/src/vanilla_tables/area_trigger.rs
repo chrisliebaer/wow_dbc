@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::map::MapKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaTrigger {
     pub rows: Vec<AreaTriggerRow>,
+}
+
+impl Into<VanillaTable> for AreaTrigger {
+    fn into(self) -> VanillaTable {
+        VanillaTable::AreaTrigger(self)
+    }
 }
 
 impl DbcTable for AreaTrigger {

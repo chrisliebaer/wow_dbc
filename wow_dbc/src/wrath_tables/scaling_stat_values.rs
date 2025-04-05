@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ScalingStatValues {
     pub rows: Vec<ScalingStatValuesRow>,
+}
+
+impl Into<WrathTable> for ScalingStatValues {
+    fn into(self) -> WrathTable {
+        WrathTable::ScalingStatValues(self)
+    }
 }
 
 impl DbcTable for ScalingStatValues {

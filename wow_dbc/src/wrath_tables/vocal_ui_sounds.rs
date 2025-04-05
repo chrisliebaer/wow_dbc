@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VocalUISounds {
     pub rows: Vec<VocalUISoundsRow>,
+}
+
+impl Into<WrathTable> for VocalUISounds {
+    fn into(self) -> WrathTable {
+        WrathTable::VocalUISounds(self)
+    }
 }
 
 impl DbcTable for VocalUISounds {

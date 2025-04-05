@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::languages::LanguagesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LanguageWords {
     pub rows: Vec<LanguageWordsRow>,
+}
+
+impl Into<TbcTable> for LanguageWords {
+    fn into(self) -> TbcTable {
+        TbcTable::LanguageWords(self)
+    }
 }
 
 impl DbcTable for LanguageWords {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::currency_category::CurrencyCategoryKey;
 use crate::wrath_tables::item::ItemKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CurrencyTypes {
     pub rows: Vec<CurrencyTypesRow>,
+}
+
+impl Into<WrathTable> for CurrencyTypes {
+    fn into(self) -> WrathTable {
+        WrathTable::CurrencyTypes(self)
+    }
 }
 
 impl DbcTable for CurrencyTypes {

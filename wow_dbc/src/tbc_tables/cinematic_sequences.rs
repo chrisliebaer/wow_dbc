@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicSequences {
     pub rows: Vec<CinematicSequencesRow>,
+}
+
+impl Into<TbcTable> for CinematicSequences {
+    fn into(self) -> TbcTable {
+        TbcTable::CinematicSequences(self)
+    }
 }
 
 impl DbcTable for CinematicSequences {

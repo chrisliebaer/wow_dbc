@@ -6,12 +6,19 @@ use crate::header::{
 };
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SwingType;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WeaponSwingSounds2 {
     pub rows: Vec<WeaponSwingSounds2Row>,
+}
+
+impl Into<VanillaTable> for WeaponSwingSounds2 {
+    fn into(self) -> VanillaTable {
+        VanillaTable::WeaponSwingSounds2(self)
+    }
 }
 
 impl DbcTable for WeaponSwingSounds2 {

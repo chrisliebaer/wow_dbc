@@ -18,12 +18,19 @@ use crate::wrath_tables::spell_mechanic::SpellMechanicKey;
 use crate::wrath_tables::spell_missile::SpellMissileKey;
 use crate::wrath_tables::spell_rune_cost::SpellRuneCostKey;
 use std::io::Write;
+use super::WrathTable;
 use wow_world_base::wrath::AuraMod;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spell {
     pub rows: Vec<SpellRow>,
+}
+
+impl Into<WrathTable> for Spell {
+    fn into(self) -> WrathTable {
+        WrathTable::Spell(self)
+    }
 }
 
 impl DbcTable for Spell {

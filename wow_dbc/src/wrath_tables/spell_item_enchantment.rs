@@ -8,11 +8,18 @@ use crate::wrath_tables::item_visuals::ItemVisualsKey;
 use crate::wrath_tables::skill_line::SkillLineKey;
 use crate::wrath_tables::spell_item_enchantment_condition::SpellItemEnchantmentConditionKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellItemEnchantment {
     pub rows: Vec<SpellItemEnchantmentRow>,
+}
+
+impl Into<WrathTable> for SpellItemEnchantment {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellItemEnchantment(self)
+    }
 }
 
 impl DbcTable for SpellItemEnchantment {

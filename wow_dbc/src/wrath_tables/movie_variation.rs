@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::file_data::FileDataKey;
 use crate::wrath_tables::movie::MovieKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MovieVariation {
     pub rows: Vec<MovieVariationRow>,
+}
+
+impl Into<WrathTable> for MovieVariation {
+    fn into(self) -> WrathTable {
+        WrathTable::MovieVariation(self)
+    }
 }
 
 impl DbcTable for MovieVariation {

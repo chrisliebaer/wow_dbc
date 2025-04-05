@@ -9,11 +9,18 @@ use crate::vanilla_tables::chr_races::ChrRacesKey;
 use crate::vanilla_tables::skill_line::SkillLineKey;
 use crate::vanilla_tables::spell::SpellKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SkillLineAbility {
     pub rows: Vec<SkillLineAbilityRow>,
+}
+
+impl Into<VanillaTable> for SkillLineAbility {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SkillLineAbility(self)
+    }
 }
 
 impl DbcTable for SkillLineAbility {

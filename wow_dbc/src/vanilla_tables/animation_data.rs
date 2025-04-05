@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::WeaponFlags;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AnimationData {
     pub rows: Vec<AnimationDataRow>,
+}
+
+impl Into<VanillaTable> for AnimationData {
+    fn into(self) -> VanillaTable {
+        VanillaTable::AnimationData(self)
+    }
 }
 
 impl DbcTable for AnimationData {

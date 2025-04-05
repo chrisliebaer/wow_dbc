@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaTrigger {
     pub rows: Vec<AreaTriggerRow>,
+}
+
+impl Into<WrathTable> for AreaTrigger {
+    fn into(self) -> WrathTable {
+        WrathTable::AreaTrigger(self)
+    }
 }
 
 impl DbcTable for AreaTrigger {

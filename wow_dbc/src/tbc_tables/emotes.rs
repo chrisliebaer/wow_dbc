@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::animation_data::AnimationDataKey;
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Emotes {
     pub rows: Vec<EmotesRow>,
+}
+
+impl Into<TbcTable> for Emotes {
+    fn into(self) -> TbcTable {
+        TbcTable::Emotes(self)
+    }
 }
 
 impl DbcTable for Emotes {

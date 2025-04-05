@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::map::MapKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldMapContinent {
     pub rows: Vec<WorldMapContinentRow>,
+}
+
+impl Into<VanillaTable> for WorldMapContinent {
+    fn into(self) -> VanillaTable {
+        VanillaTable::WorldMapContinent(self)
+    }
 }
 
 impl DbcTable for WorldMapContinent {

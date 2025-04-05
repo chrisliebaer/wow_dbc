@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use crate::wrath_tables::terrain_type_sounds::TerrainTypeSoundsKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeathThudLookups {
     pub rows: Vec<DeathThudLookupsRow>,
+}
+
+impl Into<WrathTable> for DeathThudLookups {
+    fn into(self) -> WrathTable {
+        WrathTable::DeathThudLookups(self)
+    }
 }
 
 impl DbcTable for DeathThudLookups {

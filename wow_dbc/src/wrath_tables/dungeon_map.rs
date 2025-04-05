@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::area_table::AreaTableKey;
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DungeonMap {
     pub rows: Vec<DungeonMapRow>,
+}
+
+impl Into<WrathTable> for DungeonMap {
+    fn into(self) -> WrathTable {
+        WrathTable::DungeonMap(self)
+    }
 }
 
 impl DbcTable for DungeonMap {

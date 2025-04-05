@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::area_table::AreaTableKey;
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldMapArea {
     pub rows: Vec<WorldMapAreaRow>,
+}
+
+impl Into<TbcTable> for WorldMapArea {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldMapArea(self)
+    }
 }
 
 impl DbcTable for WorldMapArea {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellRange {
     pub rows: Vec<SpellRangeRow>,
+}
+
+impl Into<VanillaTable> for SpellRange {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellRange(self)
+    }
 }
 
 impl DbcTable for SpellRange {

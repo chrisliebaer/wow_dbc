@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::liquid_type::LiquidTypeKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::FluidSpeed;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundWaterType {
     pub rows: Vec<SoundWaterTypeRow>,
+}
+
+impl Into<VanillaTable> for SoundWaterType {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SoundWaterType(self)
+    }
 }
 
 impl DbcTable for SoundWaterType {

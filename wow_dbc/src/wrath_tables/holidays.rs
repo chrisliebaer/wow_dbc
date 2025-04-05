@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::holiday_descriptions::HolidayDescriptionsKey;
 use crate::wrath_tables::holiday_names::HolidayNamesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Holidays {
     pub rows: Vec<HolidaysRow>,
+}
+
+impl Into<WrathTable> for Holidays {
+    fn into(self) -> WrathTable {
+        WrathTable::Holidays(self)
+    }
 }
 
 impl DbcTable for Holidays {

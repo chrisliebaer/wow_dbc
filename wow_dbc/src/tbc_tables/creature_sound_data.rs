@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::footstep_terrain_lookup::FootstepTerrainLookupKey;
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSoundData {
     pub rows: Vec<CreatureSoundDataRow>,
+}
+
+impl Into<TbcTable> for CreatureSoundData {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureSoundData(self)
+    }
 }
 
 impl DbcTable for CreatureSoundData {

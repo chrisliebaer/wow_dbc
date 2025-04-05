@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicCamera {
     pub rows: Vec<CinematicCameraRow>,
+}
+
+impl Into<WrathTable> for CinematicCamera {
+    fn into(self) -> WrathTable {
+        WrathTable::CinematicCamera(self)
+    }
 }
 
 impl DbcTable for CinematicCamera {

@@ -8,11 +8,18 @@ use crate::vanilla_tables::chr_classes::ChrClassesKey;
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use crate::vanilla_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TalentTab {
     pub rows: Vec<TalentTabRow>,
+}
+
+impl Into<VanillaTable> for TalentTab {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TalentTab(self)
+    }
 }
 
 impl DbcTable for TalentTab {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundSamplePreferences {
     pub rows: Vec<SoundSamplePreferencesRow>,
+}
+
+impl Into<WrathTable> for SoundSamplePreferences {
+    fn into(self) -> WrathTable {
+        WrathTable::SoundSamplePreferences(self)
+    }
 }
 
 impl DbcTable for SoundSamplePreferences {

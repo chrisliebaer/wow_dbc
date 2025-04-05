@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FootprintTextures {
     pub rows: Vec<FootprintTexturesRow>,
+}
+
+impl Into<TbcTable> for FootprintTextures {
+    fn into(self) -> TbcTable {
+        TbcTable::FootprintTextures(self)
+    }
 }
 
 impl DbcTable for FootprintTextures {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellEffectCameraShakes {
     pub rows: Vec<SpellEffectCameraShakesRow>,
+}
+
+impl Into<VanillaTable> for SpellEffectCameraShakes {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellEffectCameraShakes(self)
+    }
 }
 
 impl DbcTable for SpellEffectCameraShakes {

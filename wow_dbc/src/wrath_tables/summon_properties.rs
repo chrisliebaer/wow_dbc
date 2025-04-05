@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::faction_template::FactionTemplateKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SummonProperties {
     pub rows: Vec<SummonPropertiesRow>,
+}
+
+impl Into<WrathTable> for SummonProperties {
+    fn into(self) -> WrathTable {
+        WrathTable::SummonProperties(self)
+    }
 }
 
 impl DbcTable for SummonProperties {

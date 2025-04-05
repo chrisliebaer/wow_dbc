@@ -9,11 +9,18 @@ use crate::vanilla_tables::camera_shakes::CameraShakesKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::spell_visual_effect_name::SpellVisualEffectNameKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKit {
     pub rows: Vec<SpellVisualKitRow>,
+}
+
+impl Into<VanillaTable> for SpellVisualKit {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellVisualKit(self)
+    }
 }
 
 impl DbcTable for SpellVisualKit {

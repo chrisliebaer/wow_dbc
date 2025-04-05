@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::spell::SpellKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Talent {
     pub rows: Vec<TalentRow>,
+}
+
+impl Into<WrathTable> for Talent {
+    fn into(self) -> WrathTable {
+        WrathTable::Talent(self)
+    }
 }
 
 impl DbcTable for Talent {

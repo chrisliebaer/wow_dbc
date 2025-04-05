@@ -5,11 +5,18 @@ use crate::header::{
 use crate::vanilla_tables::chr_classes::ChrClassesKey;
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharBaseInfo {
     pub rows: Vec<CharBaseInfoRow>,
+}
+
+impl Into<VanillaTable> for CharBaseInfo {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharBaseInfo(self)
+    }
 }
 
 impl DbcTable for CharBaseInfo {

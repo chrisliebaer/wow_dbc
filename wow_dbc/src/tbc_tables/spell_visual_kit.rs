@@ -8,11 +8,18 @@ use crate::tbc_tables::animation_data::AnimationDataKey;
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use crate::tbc_tables::spell_effect_camera_shakes::SpellEffectCameraShakesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKit {
     pub rows: Vec<SpellVisualKitRow>,
+}
+
+impl Into<TbcTable> for SpellVisualKit {
+    fn into(self) -> TbcTable {
+        TbcTable::SpellVisualKit(self)
+    }
 }
 
 impl DbcTable for SpellVisualKit {

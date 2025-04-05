@@ -8,11 +8,18 @@ use crate::wrath_tables::animation_data::AnimationDataKey;
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use crate::wrath_tables::spell_effect_camera_shakes::SpellEffectCameraShakesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKit {
     pub rows: Vec<SpellVisualKitRow>,
+}
+
+impl Into<WrathTable> for SpellVisualKit {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKit(self)
+    }
 }
 
 impl DbcTable for SpellVisualKit {

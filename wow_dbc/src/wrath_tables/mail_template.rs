@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct MailTemplate {
     pub rows: Vec<MailTemplateRow>,
+}
+
+impl Into<WrathTable> for MailTemplate {
+    fn into(self) -> WrathTable {
+        WrathTable::MailTemplate(self)
+    }
 }
 
 impl DbcTable for MailTemplate {

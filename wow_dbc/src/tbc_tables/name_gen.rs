@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NameGen {
     pub rows: Vec<NameGenRow>,
+}
+
+impl Into<TbcTable> for NameGen {
+    fn into(self) -> TbcTable {
+        TbcTable::NameGen(self)
+    }
 }
 
 impl DbcTable for NameGen {

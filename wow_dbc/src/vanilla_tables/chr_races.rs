@@ -11,6 +11,7 @@ use crate::vanilla_tables::faction_template::FactionTemplateKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::spell::SpellKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     CharacterRaceFlags, Language,
 };
@@ -19,6 +20,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChrRaces {
     pub rows: Vec<ChrRacesRow>,
+}
+
+impl Into<VanillaTable> for ChrRaces {
+    fn into(self) -> VanillaTable {
+        VanillaTable::ChrRaces(self)
+    }
 }
 
 impl DbcTable for ChrRaces {

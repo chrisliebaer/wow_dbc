@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundSamplePreferences {
     pub rows: Vec<SoundSamplePreferencesRow>,
+}
+
+impl Into<TbcTable> for SoundSamplePreferences {
+    fn into(self) -> TbcTable {
+        TbcTable::SoundSamplePreferences(self)
+    }
 }
 
 impl DbcTable for SoundSamplePreferences {

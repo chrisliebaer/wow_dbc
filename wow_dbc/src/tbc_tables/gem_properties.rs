@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::spell_item_enchantment::SpellItemEnchantmentKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GemProperties {
     pub rows: Vec<GemPropertiesRow>,
+}
+
+impl Into<TbcTable> for GemProperties {
+    fn into(self) -> TbcTable {
+        TbcTable::GemProperties(self)
+    }
 }
 
 impl DbcTable for GemProperties {

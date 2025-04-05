@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::taxi_nodes::TaxiNodesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TaxiPath {
     pub rows: Vec<TaxiPathRow>,
+}
+
+impl Into<TbcTable> for TaxiPath {
+    fn into(self) -> TbcTable {
+        TbcTable::TaxiPath(self)
+    }
 }
 
 impl DbcTable for TaxiPath {

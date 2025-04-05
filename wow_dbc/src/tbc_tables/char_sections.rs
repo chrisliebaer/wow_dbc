@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharSections {
     pub rows: Vec<CharSectionsRow>,
+}
+
+impl Into<TbcTable> for CharSections {
+    fn into(self) -> TbcTable {
+        TbcTable::CharSections(self)
+    }
 }
 
 impl DbcTable for CharSections {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::particle_color::ParticleColorKey;
 use crate::tbc_tables::spell_visual::SpellVisualKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemDisplayInfo {
     pub rows: Vec<ItemDisplayInfoRow>,
+}
+
+impl Into<TbcTable> for ItemDisplayInfo {
+    fn into(self) -> TbcTable {
+        TbcTable::ItemDisplayInfo(self)
+    }
 }
 
 impl DbcTable for ItemDisplayInfo {

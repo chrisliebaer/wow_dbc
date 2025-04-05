@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::taxi_nodes::TaxiNodesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TaxiPath {
     pub rows: Vec<TaxiPathRow>,
+}
+
+impl Into<VanillaTable> for TaxiPath {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TaxiPath(self)
+    }
 }
 
 impl DbcTable for TaxiPath {

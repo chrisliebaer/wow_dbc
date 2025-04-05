@@ -8,11 +8,18 @@ use crate::tbc_tables::area_table::AreaTableKey;
 use crate::tbc_tables::faction::FactionKey;
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldStateUI {
     pub rows: Vec<WorldStateUIRow>,
+}
+
+impl Into<TbcTable> for WorldStateUI {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldStateUI(self)
+    }
 }
 
 impl DbcTable for WorldStateUI {

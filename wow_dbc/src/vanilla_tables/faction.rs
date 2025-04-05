@@ -5,6 +5,7 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     AllowedRace, ReputationFlags,
 };
@@ -13,6 +14,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Faction {
     pub rows: Vec<FactionRow>,
+}
+
+impl Into<VanillaTable> for Faction {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Faction(self)
+    }
 }
 
 impl DbcTable for Faction {

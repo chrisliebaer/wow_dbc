@@ -1,8 +1,10 @@
 use crate::rust_printer::{not_pascal_case_name, print_derives};
 use crate::types::{Field, Type};
-use crate::{rust_printer, DbcDescription, Objects, Writer};
+use crate::{rust_printer, DbcDescription, DbcVersion, Objects, Writer};
 
-pub fn create_main_ty(s: &mut Writer, d: &DbcDescription, o: &Objects) {
+pub fn create_main_ty(s: &mut Writer, d: &DbcDescription, o: &Objects, version: DbcVersion) {
+    let name = d.name();
+
     if not_pascal_case_name(d.name()) {
         s.wln("#[allow(non_camel_case_types)]");
     }
@@ -11,7 +13,15 @@ pub fn create_main_ty(s: &mut Writer, d: &DbcDescription, o: &Objects) {
         s.wln(format!("pub rows: Vec<{}Row>,", d.name()));
     });
 
-    s.bodyn(format!("impl DbcTable for {name}", name = d.name()), |s| {
+    // impl for version table enums can't be moved into DbcTable, since it's version agnostic
+    let table_enum = format!("{}Table", version.to_str_capitalized());
+    s.bodyn(format!("impl Into<{}> for {}", table_enum, name), |s| {
+        s.body(format!("fn into(self) -> {}", table_enum), |s| {
+            s.wln(format!("{}::{}(self)", table_enum, name));
+        });
+    });
+
+    s.bodyn(format!("impl DbcTable for {name}"), |s| {
         create_types(s, d);
 
         create_read(s, d, o);
@@ -20,13 +30,13 @@ pub fn create_main_ty(s: &mut Writer, d: &DbcDescription, o: &Objects) {
     });
 
     if d.primary_key().is_some() {
-        s.bodyn(format!("impl Indexable for {name}", name = d.name()), |s| {
+        s.bodyn(format!("impl Indexable for {name}"), |s| {
             create_index(s, d);
         });
     }
 
     if d.contains_string() {
-        s.bodyn(format!("impl {name}", name = d.name()), |s| {
+        s.bodyn(format!("impl {name}"), |s| {
             create_string_size_block(s, d);
 
             create_string_block_size(s, d);

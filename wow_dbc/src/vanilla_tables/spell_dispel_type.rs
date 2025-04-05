@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellDispelType {
     pub rows: Vec<SpellDispelTypeRow>,
+}
+
+impl Into<VanillaTable> for SpellDispelType {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellDispelType(self)
+    }
 }
 
 impl DbcTable for SpellDispelType {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellRadius {
     pub rows: Vec<SpellRadiusRow>,
+}
+
+impl Into<TbcTable> for SpellRadius {
+    fn into(self) -> TbcTable {
+        TbcTable::SpellRadius(self)
+    }
 }
 
 impl DbcTable for SpellRadius {

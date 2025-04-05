@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StableSlotPrices {
     pub rows: Vec<StableSlotPricesRow>,
+}
+
+impl Into<WrathTable> for StableSlotPrices {
+    fn into(self) -> WrathTable {
+        WrathTable::StableSlotPrices(self)
+    }
 }
 
 impl DbcTable for StableSlotPrices {

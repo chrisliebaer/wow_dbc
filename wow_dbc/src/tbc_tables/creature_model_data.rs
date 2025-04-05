@@ -9,11 +9,18 @@ use crate::tbc_tables::footprint_textures::FootprintTexturesKey;
 use crate::tbc_tables::material::MaterialKey;
 use crate::tbc_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelData {
     pub rows: Vec<CreatureModelDataRow>,
+}
+
+impl Into<TbcTable> for CreatureModelData {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureModelData(self)
+    }
 }
 
 impl DbcTable for CreatureModelData {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::object_effect_group::ObjectEffectGroupKey;
 use crate::wrath_tables::object_effect_package::ObjectEffectPackageKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ObjectEffectPackageElem {
     pub rows: Vec<ObjectEffectPackageElemRow>,
+}
+
+impl Into<WrathTable> for ObjectEffectPackageElem {
+    fn into(self) -> WrathTable {
+        WrathTable::ObjectEffectPackageElem(self)
+    }
 }
 
 impl DbcTable for ObjectEffectPackageElem {

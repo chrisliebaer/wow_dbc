@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::faction::FactionKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AuctionHouse {
     pub rows: Vec<AuctionHouseRow>,
+}
+
+impl Into<WrathTable> for AuctionHouse {
+    fn into(self) -> WrathTable {
+        WrathTable::AuctionHouse(self)
+    }
 }
 
 impl DbcTable for AuctionHouse {

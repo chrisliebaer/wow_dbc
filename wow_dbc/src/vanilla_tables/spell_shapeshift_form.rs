@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftForm {
     pub rows: Vec<SpellShapeshiftFormRow>,
+}
+
+impl Into<VanillaTable> for SpellShapeshiftForm {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellShapeshiftForm(self)
+    }
 }
 
 impl DbcTable for SpellShapeshiftForm {

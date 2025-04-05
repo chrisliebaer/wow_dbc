@@ -4,12 +4,19 @@ use crate::header::{
 };
 use crate::vanilla_tables::gm_survey_surveys::GMSurveySurveysKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::ClientLanguage;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GMSurveyCurrentSurvey {
     pub rows: Vec<GMSurveyCurrentSurveyRow>,
+}
+
+impl Into<VanillaTable> for GMSurveyCurrentSurvey {
+    fn into(self) -> VanillaTable {
+        VanillaTable::GMSurveyCurrentSurvey(self)
+    }
 }
 
 impl DbcTable for GMSurveyCurrentSurvey {

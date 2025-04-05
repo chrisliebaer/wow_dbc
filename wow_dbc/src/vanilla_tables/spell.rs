@@ -18,6 +18,7 @@ use crate::vanilla_tables::spell_mechanic::SpellMechanicKey;
 use crate::vanilla_tables::spell_range::SpellRangeKey;
 use crate::vanilla_tables::spell_shapeshift_form::SpellShapeshiftFormKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     Attributes, AttributesEx1, AttributesEx2, AttributesEx3, AttributesEx4, AuraMod,
 };
@@ -26,6 +27,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spell {
     pub rows: Vec<SpellRow>,
+}
+
+impl Into<VanillaTable> for Spell {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Spell(self)
+    }
 }
 
 impl DbcTable for Spell {

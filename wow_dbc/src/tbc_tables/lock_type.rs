@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LockType {
     pub rows: Vec<LockTypeRow>,
+}
+
+impl Into<TbcTable> for LockType {
+    fn into(self) -> TbcTable {
+        TbcTable::LockType(self)
+    }
 }
 
 impl DbcTable for LockType {

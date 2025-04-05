@@ -10,11 +10,18 @@ use crate::wrath_tables::sound_provider_preferences::SoundProviderPreferencesKey
 use crate::wrath_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::wrath_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WMOAreaTable {
     pub rows: Vec<WMOAreaTableRow>,
+}
+
+impl Into<WrathTable> for WMOAreaTable {
+    fn into(self) -> WrathTable {
+        WrathTable::WMOAreaTable(self)
+    }
 }
 
 impl DbcTable for WMOAreaTable {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemExtendedCost {
     pub rows: Vec<ItemExtendedCostRow>,
+}
+
+impl Into<TbcTable> for ItemExtendedCost {
+    fn into(self) -> TbcTable {
+        TbcTable::ItemExtendedCost(self)
+    }
 }
 
 impl DbcTable for ItemExtendedCost {

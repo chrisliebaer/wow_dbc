@@ -57,18 +57,18 @@
 #![allow(clippy::useless_conversion)]
 #![allow(non_camel_case_types)]
 #![warn(
-clippy::perf,
-clippy::correctness,
-clippy::style,
-clippy::missing_const_for_fn,
-clippy::missing_errors_doc,
-clippy::missing_panics_doc,
-clippy::doc_markdown,
-clippy::unseparated_literal_suffix,
-missing_docs
+    clippy::perf,
+    clippy::correctness,
+    clippy::style,
+    clippy::missing_const_for_fn,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::doc_markdown,
+    clippy::unseparated_literal_suffix,
+    missing_docs
 )]
 
-use std::io::{Read, Write};
+use std::io::{Error, Read, Write};
 
 pub(crate) mod error;
 
@@ -81,7 +81,13 @@ pub(crate) mod header;
 #[cfg(feature = "vanilla")]
 pub mod vanilla_tables;
 
+#[allow(missing_docs, clippy::unnecessary_cast)]
+#[cfg(feature = "tbc")]
+pub mod tbc_tables;
 
+#[allow(missing_docs, clippy::unnecessary_cast)]
+#[cfg(feature = "wrath")]
+pub mod wrath_tables;
 
 mod tys;
 
@@ -127,7 +133,7 @@ pub trait DbcTable: Sized {
     /// # Errors
     ///
     /// Returns the same errors as [`Write::write_all`].
-    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error>;
+    fn write(&self, w: &mut impl Write) -> Result<(), Error>;
 }
 
 /// Implemented by tables that have a primary key.
@@ -147,4 +153,21 @@ pub trait Indexable: DbcTable {
     /// Gets the primary key, if present. Internally this is just [`std::iter::Iterator::find`] since the
     /// items are not guaranteed to be ordered nor even be present.
     fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row>;
+}
+
+pub trait DbcTableEnum<TableEnum> {
+    fn load(self, b: &mut impl Read) -> Result<TableEnum, DbcError>;
+}
+
+pub trait DbcTableWriter {
+    fn write(self, w: &mut impl Write) -> Result<(), Error>;
+}
+
+/// Helper method for loading a table and converting it to the version specific enum.
+pub(crate) fn load_table_to_enum<Table, Out>(b: &mut impl Read) -> Result<Out, DbcError>
+where
+    Table: DbcTable,
+    Table: Into<Out>,
+{
+    Table::read(b).map(Into::into)
 }

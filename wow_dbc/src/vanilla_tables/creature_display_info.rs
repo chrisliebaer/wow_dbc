@@ -10,12 +10,19 @@ use crate::vanilla_tables::creature_sound_data::CreatureSoundDataKey;
 use crate::vanilla_tables::npc_sounds::NPCSoundsKey;
 use crate::vanilla_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SizeClass;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureDisplayInfo {
     pub rows: Vec<CreatureDisplayInfoRow>,
+}
+
+impl Into<VanillaTable> for CreatureDisplayInfo {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CreatureDisplayInfo(self)
+    }
 }
 
 impl DbcTable for CreatureDisplayInfo {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::gm_survey_questions::GMSurveyQuestionsKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GMSurveyAnswers {
     pub rows: Vec<GMSurveyAnswersRow>,
+}
+
+impl Into<WrathTable> for GMSurveyAnswers {
+    fn into(self) -> WrathTable {
+        WrathTable::GMSurveyAnswers(self)
+    }
 }
 
 impl DbcTable for GMSurveyAnswers {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::declined_word::DeclinedWordKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeclinedWordCases {
     pub rows: Vec<DeclinedWordCasesRow>,
+}
+
+impl Into<WrathTable> for DeclinedWordCases {
+    fn into(self) -> WrathTable {
+        WrathTable::DeclinedWordCases(self)
+    }
 }
 
 impl DbcTable for DeclinedWordCases {

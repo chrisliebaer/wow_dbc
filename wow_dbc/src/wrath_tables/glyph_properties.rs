@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::spell::SpellKey;
 use crate::wrath_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GlyphProperties {
     pub rows: Vec<GlyphPropertiesRow>,
+}
+
+impl Into<WrathTable> for GlyphProperties {
+    fn into(self) -> WrathTable {
+        WrathTable::GlyphProperties(self)
+    }
 }
 
 impl DbcTable for GlyphProperties {

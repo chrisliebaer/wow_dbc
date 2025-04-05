@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::material::MaterialKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SheatheSoundLookups {
     pub rows: Vec<SheatheSoundLookupsRow>,
+}
+
+impl Into<TbcTable> for SheatheSoundLookups {
+    fn into(self) -> TbcTable {
+        TbcTable::SheatheSoundLookups(self)
+    }
 }
 
 impl DbcTable for SheatheSoundLookups {

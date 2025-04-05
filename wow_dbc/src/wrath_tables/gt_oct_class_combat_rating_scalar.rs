@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtOCTClassCombatRatingScalar {
     pub rows: Vec<gtOCTClassCombatRatingScalarRow>,
+}
+
+impl Into<WrathTable> for gtOCTClassCombatRatingScalar {
+    fn into(self) -> WrathTable {
+        WrathTable::gtOCTClassCombatRatingScalar(self)
+    }
 }
 
 impl DbcTable for gtOCTClassCombatRatingScalar {

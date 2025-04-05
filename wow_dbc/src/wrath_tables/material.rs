@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Material {
     pub rows: Vec<MaterialRow>,
+}
+
+impl Into<WrathTable> for Material {
+    fn into(self) -> WrathTable {
+        WrathTable::Material(self)
+    }
 }
 
 impl DbcTable for Material {

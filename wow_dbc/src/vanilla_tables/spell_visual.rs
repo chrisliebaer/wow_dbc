@@ -7,11 +7,18 @@ use crate::header::{
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisual {
     pub rows: Vec<SpellVisualRow>,
+}
+
+impl Into<VanillaTable> for SpellVisual {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellVisual(self)
+    }
 }
 
 impl DbcTable for SpellVisual {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Exhaustion {
     pub rows: Vec<ExhaustionRow>,
+}
+
+impl Into<TbcTable> for Exhaustion {
+    fn into(self) -> TbcTable {
+        TbcTable::Exhaustion(self)
+    }
 }
 
 impl DbcTable for Exhaustion {

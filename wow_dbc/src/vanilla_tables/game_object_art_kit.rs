@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameObjectArtKit {
     pub rows: Vec<GameObjectArtKitRow>,
+}
+
+impl Into<VanillaTable> for GameObjectArtKit {
+    fn into(self) -> VanillaTable {
+        VanillaTable::GameObjectArtKit(self)
+    }
 }
 
 impl DbcTable for GameObjectArtKit {

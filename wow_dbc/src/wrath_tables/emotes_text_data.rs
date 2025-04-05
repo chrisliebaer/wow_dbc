@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EmotesTextData {
     pub rows: Vec<EmotesTextDataRow>,
+}
+
+impl Into<WrathTable> for EmotesTextData {
+    fn into(self) -> WrathTable {
+        WrathTable::EmotesTextData(self)
+    }
 }
 
 impl DbcTable for EmotesTextData {

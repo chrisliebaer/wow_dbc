@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::spell::SpellKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Talent {
     pub rows: Vec<TalentRow>,
+}
+
+impl Into<TbcTable> for Talent {
+    fn into(self) -> TbcTable {
+        TbcTable::Talent(self)
+    }
 }
 
 impl DbcTable for Talent {

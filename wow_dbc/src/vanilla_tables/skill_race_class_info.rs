@@ -10,11 +10,18 @@ use crate::vanilla_tables::skill_costs_data::SkillCostsDataKey;
 use crate::vanilla_tables::skill_line::SkillLineKey;
 use crate::vanilla_tables::skill_tiers::SkillTiersKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SkillRaceClassInfo {
     pub rows: Vec<SkillRaceClassInfoRow>,
+}
+
+impl Into<VanillaTable> for SkillRaceClassInfo {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SkillRaceClassInfo(self)
+    }
 }
 
 impl DbcTable for SkillRaceClassInfo {

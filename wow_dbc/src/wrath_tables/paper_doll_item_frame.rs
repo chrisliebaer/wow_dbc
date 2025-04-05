@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PaperDollItemFrame {
     pub rows: Vec<PaperDollItemFrameRow>,
+}
+
+impl Into<WrathTable> for PaperDollItemFrame {
+    fn into(self) -> WrathTable {
+        WrathTable::PaperDollItemFrame(self)
+    }
 }
 
 impl DbcTable for PaperDollItemFrame {

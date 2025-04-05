@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Light {
     pub rows: Vec<LightRow>,
+}
+
+impl Into<WrathTable> for Light {
+    fn into(self) -> WrathTable {
+        WrathTable::Light(self)
+    }
 }
 
 impl DbcTable for Light {

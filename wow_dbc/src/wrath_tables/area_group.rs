@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaGroup {
     pub rows: Vec<AreaGroupRow>,
+}
+
+impl Into<WrathTable> for AreaGroup {
+    fn into(self) -> WrathTable {
+        WrathTable::AreaGroup(self)
+    }
 }
 
 impl DbcTable for AreaGroup {

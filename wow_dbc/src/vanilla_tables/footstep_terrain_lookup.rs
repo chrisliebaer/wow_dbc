@@ -8,11 +8,18 @@ use crate::vanilla_tables::ground_effect_doodad::GroundEffectDoodadKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::terrain_type::TerrainTypeKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FootstepTerrainLookup {
     pub rows: Vec<FootstepTerrainLookupRow>,
+}
+
+impl Into<VanillaTable> for FootstepTerrainLookup {
+    fn into(self) -> VanillaTable {
+        VanillaTable::FootstepTerrainLookup(self)
+    }
 }
 
 impl DbcTable for FootstepTerrainLookup {

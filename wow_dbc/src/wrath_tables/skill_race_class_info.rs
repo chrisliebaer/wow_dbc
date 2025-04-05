@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::skill_line::SkillLineKey;
 use crate::wrath_tables::skill_tiers::SkillTiersKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SkillRaceClassInfo {
     pub rows: Vec<SkillRaceClassInfoRow>,
+}
+
+impl Into<WrathTable> for SkillRaceClassInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::SkillRaceClassInfo(self)
+    }
 }
 
 impl DbcTable for SkillRaceClassInfo {

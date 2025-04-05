@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitAreaModel {
     pub rows: Vec<SpellVisualKitAreaModelRow>,
+}
+
+impl Into<WrathTable> for SpellVisualKitAreaModel {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKitAreaModel(self)
+    }
 }
 
 impl DbcTable for SpellVisualKitAreaModel {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct QuestInfo {
     pub rows: Vec<QuestInfoRow>,
+}
+
+impl Into<WrathTable> for QuestInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::QuestInfo(self)
+    }
 }
 
 impl DbcTable for QuestInfo {

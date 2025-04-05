@@ -6,6 +6,7 @@ use crate::header::{
 };
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     Gender, Scalp,
 };
@@ -14,6 +15,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharHairGeosets {
     pub rows: Vec<CharHairGeosetsRow>,
+}
+
+impl Into<VanillaTable> for CharHairGeosets {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharHairGeosets(self)
+    }
 }
 
 impl DbcTable for CharHairGeosets {

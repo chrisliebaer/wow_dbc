@@ -9,11 +9,18 @@ use crate::tbc_tables::wmo_area_table::WMOAreaTableKey;
 use crate::tbc_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::tbc_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldStateZoneSounds {
     pub rows: Vec<WorldStateZoneSoundsRow>,
+}
+
+impl Into<TbcTable> for WorldStateZoneSounds {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldStateZoneSounds(self)
+    }
 }
 
 impl DbcTable for WorldStateZoneSounds {

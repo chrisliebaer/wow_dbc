@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cfg_Configs {
     pub rows: Vec<Cfg_ConfigsRow>,
+}
+
+impl Into<TbcTable> for Cfg_Configs {
+    fn into(self) -> TbcTable {
+        TbcTable::Cfg_Configs(self)
+    }
 }
 
 impl DbcTable for Cfg_Configs {

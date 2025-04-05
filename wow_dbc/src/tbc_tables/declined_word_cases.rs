@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::declined_word::DeclinedWordKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeclinedWordCases {
     pub rows: Vec<DeclinedWordCasesRow>,
+}
+
+impl Into<TbcTable> for DeclinedWordCases {
+    fn into(self) -> TbcTable {
+        TbcTable::DeclinedWordCases(self)
+    }
 }
 
 impl DbcTable for DeclinedWordCases {

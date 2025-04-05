@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use crate::tbc_tables::terrain_type_sounds::TerrainTypeSoundsKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeathThudLookups {
     pub rows: Vec<DeathThudLookupsRow>,
+}
+
+impl Into<TbcTable> for DeathThudLookups {
+    fn into(self) -> TbcTable {
+        TbcTable::DeathThudLookups(self)
+    }
 }
 
 impl DbcTable for DeathThudLookups {

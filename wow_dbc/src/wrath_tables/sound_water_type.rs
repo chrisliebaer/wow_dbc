@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundWaterType {
     pub rows: Vec<SoundWaterTypeRow>,
+}
+
+impl Into<WrathTable> for SoundWaterType {
+    fn into(self) -> WrathTable {
+        WrathTable::SoundWaterType(self)
+    }
 }
 
 impl DbcTable for SoundWaterType {

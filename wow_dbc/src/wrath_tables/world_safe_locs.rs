@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldSafeLocs {
     pub rows: Vec<WorldSafeLocsRow>,
+}
+
+impl Into<WrathTable> for WorldSafeLocs {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldSafeLocs(self)
+    }
 }
 
 impl DbcTable for WorldSafeLocs {

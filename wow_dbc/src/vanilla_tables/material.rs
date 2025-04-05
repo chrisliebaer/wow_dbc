@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Material {
     pub rows: Vec<MaterialRow>,
+}
+
+impl Into<VanillaTable> for Material {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Material(self)
+    }
 }
 
 impl DbcTable for Material {

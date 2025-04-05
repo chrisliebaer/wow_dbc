@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::particle_color::ParticleColorKey;
 use crate::wrath_tables::spell_visual::SpellVisualKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemDisplayInfo {
     pub rows: Vec<ItemDisplayInfoRow>,
+}
+
+impl Into<WrathTable> for ItemDisplayInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::ItemDisplayInfo(self)
+    }
 }
 
 impl DbcTable for ItemDisplayInfo {

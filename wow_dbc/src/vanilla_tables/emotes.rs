@@ -7,6 +7,7 @@ use crate::header::{
 use crate::vanilla_tables::animation_data::AnimationDataKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     EmoteFlags, EmoteSpecProc,
 };
@@ -15,6 +16,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Emotes {
     pub rows: Vec<EmotesRow>,
+}
+
+impl Into<VanillaTable> for Emotes {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Emotes(self)
+    }
 }
 
 impl DbcTable for Emotes {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::sound_filter::SoundFilterKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundFilterElem {
     pub rows: Vec<SoundFilterElemRow>,
+}
+
+impl Into<WrathTable> for SoundFilterElem {
+    fn into(self) -> WrathTable {
+        WrathTable::SoundFilterElem(self)
+    }
 }
 
 impl DbcTable for SoundFilterElem {

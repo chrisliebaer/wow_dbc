@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Weather {
     pub rows: Vec<WeatherRow>,
+}
+
+impl Into<TbcTable> for Weather {
+    fn into(self) -> TbcTable {
+        TbcTable::Weather(self)
+    }
 }
 
 impl DbcTable for Weather {

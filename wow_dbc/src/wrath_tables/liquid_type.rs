@@ -9,11 +9,18 @@ use crate::wrath_tables::liquid_material::LiquidMaterialKey;
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use crate::wrath_tables::spell::SpellKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LiquidType {
     pub rows: Vec<LiquidTypeRow>,
+}
+
+impl Into<WrathTable> for LiquidType {
+    fn into(self) -> WrathTable {
+        WrathTable::LiquidType(self)
+    }
 }
 
 impl DbcTable for LiquidType {

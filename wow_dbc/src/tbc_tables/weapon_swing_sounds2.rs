@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WeaponSwingSounds2 {
     pub rows: Vec<WeaponSwingSounds2Row>,
+}
+
+impl Into<TbcTable> for WeaponSwingSounds2 {
+    fn into(self) -> TbcTable {
+        TbcTable::WeaponSwingSounds2(self)
+    }
 }
 
 impl DbcTable for WeaponSwingSounds2 {

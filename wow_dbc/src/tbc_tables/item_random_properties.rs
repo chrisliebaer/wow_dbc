@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemRandomProperties {
     pub rows: Vec<ItemRandomPropertiesRow>,
+}
+
+impl Into<TbcTable> for ItemRandomProperties {
+    fn into(self) -> TbcTable {
+        TbcTable::ItemRandomProperties(self)
+    }
 }
 
 impl DbcTable for ItemRandomProperties {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::spell_visual_effect_name::SpellVisualEffectNameKey;
 use crate::wrath_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualKitModelAttach {
     pub rows: Vec<SpellVisualKitModelAttachRow>,
+}
+
+impl Into<WrathTable> for SpellVisualKitModelAttach {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKitModelAttach(self)
+    }
 }
 
 impl DbcTable for SpellVisualKitModelAttach {

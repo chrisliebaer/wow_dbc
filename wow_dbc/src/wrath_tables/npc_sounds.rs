@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NPCSounds {
     pub rows: Vec<NPCSoundsRow>,
+}
+
+impl Into<WrathTable> for NPCSounds {
+    fn into(self) -> WrathTable {
+        WrathTable::NPCSounds(self)
+    }
 }
 
 impl DbcTable for NPCSounds {

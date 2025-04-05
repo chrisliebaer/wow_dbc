@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::taxi_path::TaxiPathKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LoadingScreenTaxiSplines {
     pub rows: Vec<LoadingScreenTaxiSplinesRow>,
+}
+
+impl Into<TbcTable> for LoadingScreenTaxiSplines {
+    fn into(self) -> TbcTable {
+        TbcTable::LoadingScreenTaxiSplines(self)
+    }
 }
 
 impl DbcTable for LoadingScreenTaxiSplines {

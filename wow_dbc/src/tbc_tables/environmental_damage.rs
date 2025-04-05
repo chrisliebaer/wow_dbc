@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamage {
     pub rows: Vec<EnvironmentalDamageRow>,
+}
+
+impl Into<TbcTable> for EnvironmentalDamage {
+    fn into(self) -> TbcTable {
+        TbcTable::EnvironmentalDamage(self)
+    }
 }
 
 impl DbcTable for EnvironmentalDamage {

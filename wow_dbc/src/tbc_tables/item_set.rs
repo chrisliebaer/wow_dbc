@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::skill_line::SkillLineKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemSet {
     pub rows: Vec<ItemSetRow>,
+}
+
+impl Into<TbcTable> for ItemSet {
+    fn into(self) -> TbcTable {
+        TbcTable::ItemSet(self)
+    }
 }
 
 impl DbcTable for ItemSet {

@@ -10,11 +10,18 @@ use crate::tbc_tables::sound_provider_preferences::SoundProviderPreferencesKey;
 use crate::tbc_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::tbc_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaTable {
     pub rows: Vec<AreaTableRow>,
+}
+
+impl Into<TbcTable> for AreaTable {
+    fn into(self) -> TbcTable {
+        TbcTable::AreaTable(self)
+    }
 }
 
 impl DbcTable for AreaTable {

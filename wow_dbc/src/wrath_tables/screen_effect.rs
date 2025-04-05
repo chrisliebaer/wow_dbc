@@ -8,11 +8,18 @@ use crate::wrath_tables::light_params::LightParamsKey;
 use crate::wrath_tables::sound_ambience::SoundAmbienceKey;
 use crate::wrath_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ScreenEffect {
     pub rows: Vec<ScreenEffectRow>,
+}
+
+impl Into<WrathTable> for ScreenEffect {
+    fn into(self) -> WrathTable {
+        WrathTable::ScreenEffect(self)
+    }
 }
 
 impl DbcTable for ScreenEffect {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::material::MaterialKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Item {
     pub rows: Vec<ItemRow>,
+}
+
+impl Into<WrathTable> for Item {
+    fn into(self) -> WrathTable {
+        WrathTable::Item(self)
+    }
 }
 
 impl DbcTable for Item {

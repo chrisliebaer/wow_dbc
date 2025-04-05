@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SoundType;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundEntries {
     pub rows: Vec<SoundEntriesRow>,
+}
+
+impl Into<VanillaTable> for SoundEntries {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SoundEntries(self)
+    }
 }
 
 impl DbcTable for SoundEntries {

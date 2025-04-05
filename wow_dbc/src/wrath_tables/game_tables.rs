@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameTables {
     pub rows: Vec<GameTablesRow>,
+}
+
+impl Into<WrathTable> for GameTables {
+    fn into(self) -> WrathTable {
+        WrathTable::GameTables(self)
+    }
 }
 
 impl DbcTable for GameTables {

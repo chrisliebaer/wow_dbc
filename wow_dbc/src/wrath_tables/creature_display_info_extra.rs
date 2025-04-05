@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureDisplayInfoExtra {
     pub rows: Vec<CreatureDisplayInfoExtraRow>,
+}
+
+impl Into<WrathTable> for CreatureDisplayInfoExtra {
+    fn into(self) -> WrathTable {
+        WrathTable::CreatureDisplayInfoExtra(self)
+    }
 }
 
 impl DbcTable for CreatureDisplayInfoExtra {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellDifficulty {
     pub rows: Vec<SpellDifficultyRow>,
+}
+
+impl Into<WrathTable> for SpellDifficulty {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellDifficulty(self)
+    }
 }
 
 impl DbcTable for SpellDifficulty {

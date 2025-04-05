@@ -8,11 +8,18 @@ use crate::wrath_tables::sound_ambience::SoundAmbienceKey;
 use crate::wrath_tables::sound_provider_preferences::SoundProviderPreferencesKey;
 use crate::wrath_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldChunkSounds {
     pub rows: Vec<WorldChunkSoundsRow>,
+}
+
+impl Into<WrathTable> for WorldChunkSounds {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldChunkSounds(self)
+    }
 }
 
 impl DbcTable for WorldChunkSounds {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::map::MapKey;
 use crate::wrath_tables::world_map_area::WorldMapAreaKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldMapContinent {
     pub rows: Vec<WorldMapContinentRow>,
+}
+
+impl Into<WrathTable> for WorldMapContinent {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldMapContinent(self)
+    }
 }
 
 impl DbcTable for WorldMapContinent {

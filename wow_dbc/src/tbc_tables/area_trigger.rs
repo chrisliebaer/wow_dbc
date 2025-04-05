@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaTrigger {
     pub rows: Vec<AreaTriggerRow>,
+}
+
+impl Into<TbcTable> for AreaTrigger {
+    fn into(self) -> TbcTable {
+        TbcTable::AreaTrigger(self)
+    }
 }
 
 impl DbcTable for AreaTrigger {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ObjectEffectPackage {
     pub rows: Vec<ObjectEffectPackageRow>,
+}
+
+impl Into<WrathTable> for ObjectEffectPackage {
+    fn into(self) -> WrathTable {
+        WrathTable::ObjectEffectPackage(self)
+    }
 }
 
 impl DbcTable for ObjectEffectPackage {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::map::MapKey;
 use crate::wrath_tables::sound_entries_advanced::SoundEntriesAdvancedKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundEmitters {
     pub rows: Vec<SoundEmittersRow>,
+}
+
+impl Into<WrathTable> for SoundEmitters {
+    fn into(self) -> WrathTable {
+        WrathTable::SoundEmitters(self)
+    }
 }
 
 impl DbcTable for SoundEmitters {

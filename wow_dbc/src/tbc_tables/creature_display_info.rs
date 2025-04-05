@@ -11,11 +11,18 @@ use crate::tbc_tables::npc_sounds::NPCSoundsKey;
 use crate::tbc_tables::particle_color::ParticleColorKey;
 use crate::tbc_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureDisplayInfo {
     pub rows: Vec<CreatureDisplayInfoRow>,
+}
+
+impl Into<TbcTable> for CreatureDisplayInfo {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureDisplayInfo(self)
+    }
 }
 
 impl DbcTable for CreatureDisplayInfo {

@@ -13,12 +13,19 @@ use crate::vanilla_tables::sound_provider_preferences::SoundProviderPreferencesK
 use crate::vanilla_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::vanilla_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::AreaFlags;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaTable {
     pub rows: Vec<AreaTableRow>,
+}
+
+impl Into<VanillaTable> for AreaTable {
+    fn into(self) -> VanillaTable {
+        VanillaTable::AreaTable(self)
+    }
 }
 
 impl DbcTable for AreaTable {

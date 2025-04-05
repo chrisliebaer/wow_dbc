@@ -8,11 +8,18 @@ use crate::vanilla_tables::item_group_sounds::ItemGroupSoundsKey;
 use crate::vanilla_tables::item_visuals::ItemVisualsKey;
 use crate::vanilla_tables::spell_visual::SpellVisualKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemDisplayInfo {
     pub rows: Vec<ItemDisplayInfoRow>,
+}
+
+impl Into<VanillaTable> for ItemDisplayInfo {
+    fn into(self) -> VanillaTable {
+        VanillaTable::ItemDisplayInfo(self)
+    }
 }
 
 impl DbcTable for ItemDisplayInfo {

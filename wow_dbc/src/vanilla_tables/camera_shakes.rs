@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CameraShakes {
     pub rows: Vec<CameraShakesRow>,
+}
+
+impl Into<VanillaTable> for CameraShakes {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CameraShakes(self)
+    }
 }
 
 impl DbcTable for CameraShakes {

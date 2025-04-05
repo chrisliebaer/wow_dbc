@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::skill_line::SkillLineKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemSet {
     pub rows: Vec<ItemSetRow>,
+}
+
+impl Into<WrathTable> for ItemSet {
+    fn into(self) -> WrathTable {
+        WrathTable::ItemSet(self)
+    }
 }
 
 impl DbcTable for ItemSet {

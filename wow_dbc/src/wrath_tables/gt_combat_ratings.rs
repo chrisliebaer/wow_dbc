@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtCombatRatings {
     pub rows: Vec<gtCombatRatingsRow>,
+}
+
+impl Into<WrathTable> for gtCombatRatings {
+    fn into(self) -> WrathTable {
+        WrathTable::gtCombatRatings(self)
+    }
 }
 
 impl DbcTable for gtCombatRatings {

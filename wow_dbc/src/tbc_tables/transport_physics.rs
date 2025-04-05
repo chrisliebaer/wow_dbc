@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransportPhysics {
     pub rows: Vec<TransportPhysicsRow>,
+}
+
+impl Into<TbcTable> for TransportPhysics {
+    fn into(self) -> TbcTable {
+        TbcTable::TransportPhysics(self)
+    }
 }
 
 impl DbcTable for TransportPhysics {

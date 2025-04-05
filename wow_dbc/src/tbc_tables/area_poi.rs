@@ -8,11 +8,18 @@ use crate::tbc_tables::area_table::AreaTableKey;
 use crate::tbc_tables::faction_template::FactionTemplateKey;
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaPOI {
     pub rows: Vec<AreaPOIRow>,
+}
+
+impl Into<TbcTable> for AreaPOI {
+    fn into(self) -> TbcTable {
+        TbcTable::AreaPOI(self)
+    }
 }
 
 impl DbcTable for AreaPOI {

@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CameraShakes {
     pub rows: Vec<CameraShakesRow>,
+}
+
+impl Into<WrathTable> for CameraShakes {
+    fn into(self) -> WrathTable {
+        WrathTable::CameraShakes(self)
+    }
 }
 
 impl DbcTable for CameraShakes {

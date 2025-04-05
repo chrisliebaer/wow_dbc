@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeclinedWord {
     pub rows: Vec<DeclinedWordRow>,
+}
+
+impl Into<TbcTable> for DeclinedWord {
+    fn into(self) -> TbcTable {
+        TbcTable::DeclinedWord(self)
+    }
 }
 
 impl DbcTable for DeclinedWord {

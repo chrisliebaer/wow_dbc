@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::map::MapKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Light {
     pub rows: Vec<LightRow>,
+}
+
+impl Into<VanillaTable> for Light {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Light(self)
+    }
 }
 
 impl DbcTable for Light {

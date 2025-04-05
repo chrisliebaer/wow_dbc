@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::area_table::AreaTableKey;
 use crate::wrath_tables::loading_screens::LoadingScreensKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Map {
     pub rows: Vec<MapRow>,
+}
+
+impl Into<WrathTable> for Map {
+    fn into(self) -> WrathTable {
+        WrathTable::Map(self)
+    }
 }
 
 impl DbcTable for Map {

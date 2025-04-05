@@ -5,6 +5,7 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     ServerCategory, ServerRegion,
 };
@@ -14,6 +15,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cfg_Categories {
     pub rows: Vec<Cfg_CategoriesRow>,
+}
+
+impl Into<VanillaTable> for Cfg_Categories {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Cfg_Categories(self)
+    }
 }
 
 impl DbcTable for Cfg_Categories {

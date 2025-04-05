@@ -8,11 +8,18 @@ use crate::wrath_tables::area_table::AreaTableKey;
 use crate::wrath_tables::faction_template::FactionTemplateKey;
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaPOI {
     pub rows: Vec<AreaPOIRow>,
+}
+
+impl Into<WrathTable> for AreaPOI {
+    fn into(self) -> WrathTable {
+        WrathTable::AreaPOI(self)
+    }
 }
 
 impl DbcTable for AreaPOI {

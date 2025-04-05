@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PvpDifficulty {
     pub rows: Vec<PvpDifficultyRow>,
+}
+
+impl Into<WrathTable> for PvpDifficulty {
+    fn into(self) -> WrathTable {
+        WrathTable::PvpDifficulty(self)
+    }
 }
 
 impl DbcTable for PvpDifficulty {

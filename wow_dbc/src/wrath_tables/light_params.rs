@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::light_skybox::LightSkyboxKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LightParams {
     pub rows: Vec<LightParamsRow>,
+}
+
+impl Into<WrathTable> for LightParams {
+    fn into(self) -> WrathTable {
+        WrathTable::LightParams(self)
+    }
 }
 
 impl DbcTable for LightParams {

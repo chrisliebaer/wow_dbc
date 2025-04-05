@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::light_skybox::LightSkyboxKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LightParams {
     pub rows: Vec<LightParamsRow>,
+}
+
+impl Into<VanillaTable> for LightParams {
+    fn into(self) -> VanillaTable {
+        VanillaTable::LightParams(self)
+    }
 }
 
 impl DbcTable for LightParams {

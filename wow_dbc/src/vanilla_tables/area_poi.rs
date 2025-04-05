@@ -9,11 +9,18 @@ use crate::vanilla_tables::faction::FactionKey;
 use crate::vanilla_tables::map::MapKey;
 use crate::vanilla_tables::world_state_ui::WorldStateUIKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AreaPOI {
     pub rows: Vec<AreaPOIRow>,
+}
+
+impl Into<VanillaTable> for AreaPOI {
+    fn into(self) -> VanillaTable {
+        VanillaTable::AreaPOI(self)
+    }
 }
 
 impl DbcTable for AreaPOI {

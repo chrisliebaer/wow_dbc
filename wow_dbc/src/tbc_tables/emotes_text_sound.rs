@@ -8,11 +8,18 @@ use crate::tbc_tables::chr_races::ChrRacesKey;
 use crate::tbc_tables::emotes_text::EmotesTextKey;
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EmotesTextSound {
     pub rows: Vec<EmotesTextSoundRow>,
+}
+
+impl Into<TbcTable> for EmotesTextSound {
+    fn into(self) -> TbcTable {
+        TbcTable::EmotesTextSound(self)
+    }
 }
 
 impl DbcTable for EmotesTextSound {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::item_class::ItemClassKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemSubClass {
     pub rows: Vec<ItemSubClassRow>,
+}
+
+impl Into<VanillaTable> for ItemSubClass {
+    fn into(self) -> VanillaTable {
+        VanillaTable::ItemSubClass(self)
+    }
 }
 
 impl DbcTable for ItemSubClass {

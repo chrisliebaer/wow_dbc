@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::chr_classes::ChrClassesKey;
 use crate::tbc_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharStartOutfit {
     pub rows: Vec<CharStartOutfitRow>,
+}
+
+impl Into<TbcTable> for CharStartOutfit {
+    fn into(self) -> TbcTable {
+        TbcTable::CharStartOutfit(self)
+    }
 }
 
 impl DbcTable for CharStartOutfit {

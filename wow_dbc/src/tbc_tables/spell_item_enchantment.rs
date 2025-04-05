@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::item_visuals::ItemVisualsKey;
 use crate::tbc_tables::spell_item_enchantment_condition::SpellItemEnchantmentConditionKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellItemEnchantment {
     pub rows: Vec<SpellItemEnchantmentRow>,
+}
+
+impl Into<TbcTable> for SpellItemEnchantment {
+    fn into(self) -> TbcTable {
+        TbcTable::SpellItemEnchantment(self)
+    }
 }
 
 impl DbcTable for SpellItemEnchantment {

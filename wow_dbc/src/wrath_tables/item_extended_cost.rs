@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::item_purchase_group::ItemPurchaseGroupKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemExtendedCost {
     pub rows: Vec<ItemExtendedCostRow>,
+}
+
+impl Into<WrathTable> for ItemExtendedCost {
+    fn into(self) -> WrathTable {
+        WrathTable::ItemExtendedCost(self)
+    }
 }
 
 impl DbcTable for ItemExtendedCost {

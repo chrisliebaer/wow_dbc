@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Startup_Strings {
     pub rows: Vec<Startup_StringsRow>,
+}
+
+impl Into<VanillaTable> for Startup_Strings {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Startup_Strings(self)
+    }
 }
 
 impl DbcTable for Startup_Strings {

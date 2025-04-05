@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransportRotation {
     pub rows: Vec<TransportRotationRow>,
+}
+
+impl Into<WrathTable> for TransportRotation {
+    fn into(self) -> WrathTable {
+        WrathTable::TransportRotation(self)
+    }
 }
 
 impl DbcTable for TransportRotation {

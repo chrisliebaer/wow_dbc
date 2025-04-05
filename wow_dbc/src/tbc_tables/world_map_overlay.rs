@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::world_map_area::WorldMapAreaKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldMapOverlay {
     pub rows: Vec<WorldMapOverlayRow>,
+}
+
+impl Into<TbcTable> for WorldMapOverlay {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldMapOverlay(self)
+    }
 }
 
 impl DbcTable for WorldMapOverlay {

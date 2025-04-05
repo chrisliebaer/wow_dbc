@@ -10,11 +10,18 @@ use crate::vanilla_tables::sound_provider_preferences::SoundProviderPreferencesK
 use crate::vanilla_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::vanilla_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WMOAreaTable {
     pub rows: Vec<WMOAreaTableRow>,
+}
+
+impl Into<VanillaTable> for WMOAreaTable {
+    fn into(self) -> VanillaTable {
+        VanillaTable::WMOAreaTable(self)
+    }
 }
 
 impl DbcTable for WMOAreaTable {

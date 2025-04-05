@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::world_map_area::WorldMapAreaKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldMapOverlay {
     pub rows: Vec<WorldMapOverlayRow>,
+}
+
+impl Into<WrathTable> for WorldMapOverlay {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldMapOverlay(self)
+    }
 }
 
 impl DbcTable for WorldMapOverlay {

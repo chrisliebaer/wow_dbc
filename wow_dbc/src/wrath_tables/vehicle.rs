@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::vehicle_ui_indicator::VehicleUIIndicatorKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Vehicle {
     pub rows: Vec<VehicleRow>,
+}
+
+impl Into<WrathTable> for Vehicle {
+    fn into(self) -> WrathTable {
+        WrathTable::Vehicle(self)
+    }
 }
 
 impl DbcTable for Vehicle {

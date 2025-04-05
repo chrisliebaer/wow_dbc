@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::area_table::AreaTableKey;
 use crate::wrath_tables::map::MapKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldStateUI {
     pub rows: Vec<WorldStateUIRow>,
+}
+
+impl Into<WrathTable> for WorldStateUI {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldStateUI(self)
+    }
 }
 
 impl DbcTable for WorldStateUI {

@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtChanceToSpellCrit {
     pub rows: Vec<gtChanceToSpellCritRow>,
+}
+
+impl Into<WrathTable> for gtChanceToSpellCrit {
+    fn into(self) -> WrathTable {
+        WrathTable::gtChanceToSpellCrit(self)
+    }
 }
 
 impl DbcTable for gtChanceToSpellCrit {

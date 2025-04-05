@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtNPCManaCostScaler {
     pub rows: Vec<gtNPCManaCostScalerRow>,
+}
+
+impl Into<TbcTable> for gtNPCManaCostScaler {
+    fn into(self) -> TbcTable {
+        TbcTable::gtNPCManaCostScaler(self)
+    }
 }
 
 impl DbcTable for gtNPCManaCostScaler {

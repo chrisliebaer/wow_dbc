@@ -12,11 +12,18 @@ use crate::wrath_tables::languages::LanguagesKey;
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use crate::wrath_tables::spell::SpellKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChrRaces {
     pub rows: Vec<ChrRacesRow>,
+}
+
+impl Into<WrathTable> for ChrRaces {
+    fn into(self) -> WrathTable {
+        WrathTable::ChrRaces(self)
+    }
 }
 
 impl DbcTable for ChrRaces {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::light_skybox::LightSkyboxKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LightParams {
     pub rows: Vec<LightParamsRow>,
+}
+
+impl Into<TbcTable> for LightParams {
+    fn into(self) -> TbcTable {
+        TbcTable::LightParams(self)
+    }
 }
 
 impl DbcTable for LightParams {

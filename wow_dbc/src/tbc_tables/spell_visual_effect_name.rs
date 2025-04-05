@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellVisualEffectName {
     pub rows: Vec<SpellVisualEffectNameRow>,
+}
+
+impl Into<TbcTable> for SpellVisualEffectName {
+    fn into(self) -> TbcTable {
+        TbcTable::SpellVisualEffectName(self)
+    }
 }
 
 impl DbcTable for SpellVisualEffectName {

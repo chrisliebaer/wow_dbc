@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::chr_classes::ChrClassesKey;
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::Gender;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharStartOutfit {
     pub rows: Vec<CharStartOutfitRow>,
+}
+
+impl Into<VanillaTable> for CharStartOutfit {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharStartOutfit(self)
+    }
 }
 
 impl DbcTable for CharStartOutfit {

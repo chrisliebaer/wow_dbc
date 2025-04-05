@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemGroupSounds {
     pub rows: Vec<ItemGroupSoundsRow>,
+}
+
+impl Into<VanillaTable> for ItemGroupSounds {
+    fn into(self) -> VanillaTable {
+        VanillaTable::ItemGroupSounds(self)
+    }
 }
 
 impl DbcTable for ItemGroupSounds {

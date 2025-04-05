@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::material::MaterialKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SheatheSoundLookups {
     pub rows: Vec<SheatheSoundLookupsRow>,
+}
+
+impl Into<WrathTable> for SheatheSoundLookups {
+    fn into(self) -> WrathTable {
+        WrathTable::SheatheSoundLookups(self)
+    }
 }
 
 impl DbcTable for SheatheSoundLookups {

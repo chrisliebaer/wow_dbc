@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TerrainType {
     pub rows: Vec<TerrainTypeRow>,
+}
+
+impl Into<TbcTable> for TerrainType {
+    fn into(self) -> TbcTable {
+        TbcTable::TerrainType(self)
+    }
 }
 
 impl DbcTable for TerrainType {

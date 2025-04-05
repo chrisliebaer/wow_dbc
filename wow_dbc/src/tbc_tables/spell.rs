@@ -13,12 +13,19 @@ use crate::tbc_tables::spell_focus_object::SpellFocusObjectKey;
 use crate::tbc_tables::spell_icon::SpellIconKey;
 use crate::tbc_tables::spell_mechanic::SpellMechanicKey;
 use std::io::Write;
+use super::TbcTable;
 use wow_world_base::tbc::AuraMod;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Spell {
     pub rows: Vec<SpellRow>,
+}
+
+impl Into<TbcTable> for Spell {
+    fn into(self) -> TbcTable {
+        TbcTable::Spell(self)
+    }
 }
 
 impl DbcTable for Spell {

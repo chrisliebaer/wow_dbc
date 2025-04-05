@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LightFloatBand {
     pub rows: Vec<LightFloatBandRow>,
+}
+
+impl Into<WrathTable> for LightFloatBand {
+    fn into(self) -> WrathTable {
+        WrathTable::LightFloatBand(self)
+    }
 }
 
 impl DbcTable for LightFloatBand {

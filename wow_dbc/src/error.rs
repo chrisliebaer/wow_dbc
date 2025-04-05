@@ -14,6 +14,8 @@ pub enum DbcError {
     String(FromUtf8Error),
     /// Errors related to headers.
     InvalidHeader(InvalidHeaderError),
+    /// Errors from dynamic table selection.
+    InvalidTableName(String),
 }
 
 impl Display for DbcError {
@@ -23,6 +25,9 @@ impl Display for DbcError {
             DbcError::InvalidEnum(i) => i.fmt(f),
             DbcError::String(i) => i.fmt(f),
             DbcError::InvalidHeader(i) => i.fmt(f),
+            DbcError::InvalidTableName(i) => {
+                write!(f, "invalid table name: '{}'", i)
+            }
         }
     }
 }

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::vanilla_tables::map::MapKey;
 use crate::vanilla_tables::taxi_path::TaxiPathKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TaxiPathNode {
     pub rows: Vec<TaxiPathNodeRow>,
+}
+
+impl Into<VanillaTable> for TaxiPathNode {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TaxiPathNode(self)
+    }
 }
 
 impl DbcTable for TaxiPathNode {

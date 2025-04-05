@@ -7,11 +7,18 @@ use crate::header::{
 use crate::vanilla_tables::spell::SpellKey;
 use crate::vanilla_tables::talent_tab::TalentTabKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Talent {
     pub rows: Vec<TalentRow>,
+}
+
+impl Into<VanillaTable> for Talent {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Talent(self)
+    }
 }
 
 impl DbcTable for Talent {

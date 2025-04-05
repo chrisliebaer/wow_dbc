@@ -5,11 +5,18 @@ use crate::header::{
 use crate::wrath_tables::chr_classes::ChrClassesKey;
 use crate::wrath_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharBaseInfo {
     pub rows: Vec<CharBaseInfoRow>,
+}
+
+impl Into<WrathTable> for CharBaseInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::CharBaseInfo(self)
+    }
 }
 
 impl DbcTable for CharBaseInfo {

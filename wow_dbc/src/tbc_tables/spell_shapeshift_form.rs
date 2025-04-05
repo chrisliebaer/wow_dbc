@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::creature_type::CreatureTypeKey;
 use crate::tbc_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftForm {
     pub rows: Vec<SpellShapeshiftFormRow>,
+}
+
+impl Into<TbcTable> for SpellShapeshiftForm {
+    fn into(self) -> TbcTable {
+        TbcTable::SpellShapeshiftForm(self)
+    }
 }
 
 impl DbcTable for SpellShapeshiftForm {

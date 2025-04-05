@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Light {
     pub rows: Vec<LightRow>,
+}
+
+impl Into<TbcTable> for Light {
+    fn into(self) -> TbcTable {
+        TbcTable::Light(self)
+    }
 }
 
 impl DbcTable for Light {

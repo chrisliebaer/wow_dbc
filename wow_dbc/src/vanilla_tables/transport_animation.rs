@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::animation_data::AnimationDataKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransportAnimation {
     pub rows: Vec<TransportAnimationRow>,
+}
+
+impl Into<VanillaTable> for TransportAnimation {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TransportAnimation(self)
+    }
 }
 
 impl DbcTable for TransportAnimation {

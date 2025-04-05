@@ -12,11 +12,18 @@ use crate::wrath_tables::object_effect_package::ObjectEffectPackageKey;
 use crate::wrath_tables::particle_color::ParticleColorKey;
 use crate::wrath_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureDisplayInfo {
     pub rows: Vec<CreatureDisplayInfoRow>,
+}
+
+impl Into<WrathTable> for CreatureDisplayInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::CreatureDisplayInfo(self)
+    }
 }
 
 impl DbcTable for CreatureDisplayInfo {

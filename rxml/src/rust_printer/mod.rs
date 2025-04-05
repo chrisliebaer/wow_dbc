@@ -17,7 +17,7 @@ pub fn create_table(d: &DbcDescription, o: &Objects, version: DbcVersion) -> Wri
 
     includes(&mut s, d, o, version);
 
-    main_ty::create_main_ty(&mut s, d, o);
+    main_ty::create_main_ty(&mut s, d, o, version);
 
     create_primary_keys(&mut s, d);
 
@@ -57,6 +57,8 @@ fn includes(s: &mut Writer, d: &DbcDescription, o: &Objects, version: DbcVersion
     insert(&mut map, "crate::header", "parse_header");
 
     insert(&mut map, "crate", "DbcTable");
+
+    insert(&mut map, "super", format!("{}Table", version.to_str_capitalized()));
 
     if d.primary_key().is_some() {
         insert(&mut map, "crate", "Indexable");

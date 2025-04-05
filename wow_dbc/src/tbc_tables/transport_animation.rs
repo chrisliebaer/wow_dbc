@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TransportAnimation {
     pub rows: Vec<TransportAnimationRow>,
+}
+
+impl Into<TbcTable> for TransportAnimation {
+    fn into(self) -> TbcTable {
+        TbcTable::TransportAnimation(self)
+    }
 }
 
 impl DbcTable for TransportAnimation {

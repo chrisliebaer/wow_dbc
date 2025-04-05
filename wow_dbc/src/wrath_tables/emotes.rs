@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::animation_data::AnimationDataKey;
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Emotes {
     pub rows: Vec<EmotesRow>,
+}
+
+impl Into<WrathTable> for Emotes {
+    fn into(self) -> WrathTable {
+        WrathTable::Emotes(self)
+    }
 }
 
 impl DbcTable for Emotes {

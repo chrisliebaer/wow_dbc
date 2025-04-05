@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::faction_template::FactionTemplateKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SummonProperties {
     pub rows: Vec<SummonPropertiesRow>,
+}
+
+impl Into<TbcTable> for SummonProperties {
+    fn into(self) -> TbcTable {
+        TbcTable::SummonProperties(self)
+    }
 }
 
 impl DbcTable for SummonProperties {

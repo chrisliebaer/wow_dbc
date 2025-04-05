@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamage {
     pub rows: Vec<EnvironmentalDamageRow>,
+}
+
+impl Into<WrathTable> for EnvironmentalDamage {
+    fn into(self) -> WrathTable {
+        WrathTable::EnvironmentalDamage(self)
+    }
 }
 
 impl DbcTable for EnvironmentalDamage {

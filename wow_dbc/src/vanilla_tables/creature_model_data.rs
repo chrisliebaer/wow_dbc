@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::footprint_textures::FootprintTexturesKey;
 use crate::vanilla_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SizeClass;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelData {
     pub rows: Vec<CreatureModelDataRow>,
+}
+
+impl Into<VanillaTable> for CreatureModelData {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CreatureModelData(self)
+    }
 }
 
 impl DbcTable for CreatureModelData {

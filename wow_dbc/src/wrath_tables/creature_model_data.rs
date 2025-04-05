@@ -9,11 +9,18 @@ use crate::wrath_tables::footprint_textures::FootprintTexturesKey;
 use crate::wrath_tables::material::MaterialKey;
 use crate::wrath_tables::unit_blood::UnitBloodKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureModelData {
     pub rows: Vec<CreatureModelDataRow>,
+}
+
+impl Into<WrathTable> for CreatureModelData {
+    fn into(self) -> WrathTable {
+        WrathTable::CreatureModelData(self)
+    }
 }
 
 impl DbcTable for CreatureModelData {

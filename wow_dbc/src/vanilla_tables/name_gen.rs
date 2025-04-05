@@ -6,12 +6,19 @@ use crate::header::{
 };
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::Gender;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct NameGen {
     pub rows: Vec<NameGenRow>,
+}
+
+impl Into<VanillaTable> for NameGen {
+    fn into(self) -> VanillaTable {
+        VanillaTable::NameGen(self)
+    }
 }
 
 impl DbcTable for NameGen {

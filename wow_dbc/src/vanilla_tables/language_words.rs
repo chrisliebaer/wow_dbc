@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::languages::LanguagesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LanguageWords {
     pub rows: Vec<LanguageWordsRow>,
+}
+
+impl Into<VanillaTable> for LanguageWords {
+    fn into(self) -> VanillaTable {
+        VanillaTable::LanguageWords(self)
+    }
 }
 
 impl DbcTable for LanguageWords {

@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::faction::FactionKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct AuctionHouse {
     pub rows: Vec<AuctionHouseRow>,
+}
+
+impl Into<VanillaTable> for AuctionHouse {
+    fn into(self) -> VanillaTable {
+        VanillaTable::AuctionHouse(self)
+    }
 }
 
 impl DbcTable for AuctionHouse {

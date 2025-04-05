@@ -4,12 +4,19 @@ use crate::header::{
 };
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::Gender;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharVariations {
     pub rows: Vec<CharVariationsRow>,
+}
+
+impl Into<VanillaTable> for CharVariations {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharVariations(self)
+    }
 }
 
 impl DbcTable for CharVariations {

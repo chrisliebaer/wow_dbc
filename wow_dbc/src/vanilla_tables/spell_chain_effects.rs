@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellChainEffects {
     pub rows: Vec<SpellChainEffectsRow>,
+}
+
+impl Into<VanillaTable> for SpellChainEffects {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellChainEffects(self)
+    }
 }
 
 impl DbcTable for SpellChainEffects {

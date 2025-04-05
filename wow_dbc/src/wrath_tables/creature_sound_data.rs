@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::footstep_terrain_lookup::FootstepTerrainLookupKey;
 use crate::wrath_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureSoundData {
     pub rows: Vec<CreatureSoundDataRow>,
+}
+
+impl Into<WrathTable> for CreatureSoundData {
+    fn into(self) -> WrathTable {
+        WrathTable::CreatureSoundData(self)
+    }
 }
 
 impl DbcTable for CreatureSoundData {

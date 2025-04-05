@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SoundAmbience {
     pub rows: Vec<SoundAmbienceRow>,
+}
+
+impl Into<VanillaTable> for SoundAmbience {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SoundAmbience(self)
+    }
 }
 
 impl DbcTable for SoundAmbience {

@@ -4,11 +4,18 @@ use crate::header::{
 };
 use crate::wrath_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharacterFacialHairStyles {
     pub rows: Vec<CharacterFacialHairStylesRow>,
+}
+
+impl Into<WrathTable> for CharacterFacialHairStyles {
+    fn into(self) -> WrathTable {
+        WrathTable::CharacterFacialHairStyles(self)
+    }
 }
 
 impl DbcTable for CharacterFacialHairStyles {

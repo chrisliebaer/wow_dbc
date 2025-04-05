@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::faction::FactionKey;
 use crate::wrath_tables::faction_group::FactionGroupKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FactionTemplate {
     pub rows: Vec<FactionTemplateRow>,
+}
+
+impl Into<WrathTable> for FactionTemplate {
+    fn into(self) -> WrathTable {
+        WrathTable::FactionTemplate(self)
+    }
 }
 
 impl DbcTable for FactionTemplate {

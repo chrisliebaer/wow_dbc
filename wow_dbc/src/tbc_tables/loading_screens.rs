@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LoadingScreens {
     pub rows: Vec<LoadingScreensRow>,
+}
+
+impl Into<TbcTable> for LoadingScreens {
+    fn into(self) -> TbcTable {
+        TbcTable::LoadingScreens(self)
+    }
 }
 
 impl DbcTable for LoadingScreens {

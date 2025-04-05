@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::item_class::ItemClassKey;
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::ItemEnvTypes;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SheatheSoundLookups {
     pub rows: Vec<SheatheSoundLookupsRow>,
+}
+
+impl Into<VanillaTable> for SheatheSoundLookups {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SheatheSoundLookups(self)
+    }
 }
 
 impl DbcTable for SheatheSoundLookups {

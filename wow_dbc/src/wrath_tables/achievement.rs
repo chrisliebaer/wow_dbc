@@ -9,11 +9,18 @@ use crate::wrath_tables::faction::FactionKey;
 use crate::wrath_tables::map::MapKey;
 use crate::wrath_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Achievement {
     pub rows: Vec<AchievementRow>,
+}
+
+impl Into<WrathTable> for Achievement {
+    fn into(self) -> WrathTable {
+        WrathTable::Achievement(self)
+    }
 }
 
 impl DbcTable for Achievement {

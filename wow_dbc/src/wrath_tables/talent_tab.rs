@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TalentTab {
     pub rows: Vec<TalentTabRow>,
+}
+
+impl Into<WrathTable> for TalentTab {
+    fn into(self) -> WrathTable {
+        WrathTable::TalentTab(self)
+    }
 }
 
 impl DbcTable for TalentTab {

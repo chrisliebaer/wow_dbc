@@ -7,11 +7,18 @@ use crate::header::{
 use crate::wrath_tables::creature_type::CreatureTypeKey;
 use crate::wrath_tables::spell_icon::SpellIconKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpellShapeshiftForm {
     pub rows: Vec<SpellShapeshiftFormRow>,
+}
+
+impl Into<WrathTable> for SpellShapeshiftForm {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellShapeshiftForm(self)
+    }
 }
 
 impl DbcTable for SpellShapeshiftForm {

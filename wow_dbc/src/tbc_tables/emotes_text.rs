@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::emotes::EmotesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EmotesText {
     pub rows: Vec<EmotesTextRow>,
+}
+
+impl Into<TbcTable> for EmotesText {
+    fn into(self) -> TbcTable {
+        TbcTable::EmotesText(self)
+    }
 }
 
 impl DbcTable for EmotesText {

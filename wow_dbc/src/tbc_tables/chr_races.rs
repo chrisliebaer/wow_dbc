@@ -12,11 +12,18 @@ use crate::tbc_tables::languages::LanguagesKey;
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
 use crate::tbc_tables::spell::SpellKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChrRaces {
     pub rows: Vec<ChrRacesRow>,
+}
+
+impl Into<TbcTable> for ChrRaces {
+    fn into(self) -> TbcTable {
+        TbcTable::ChrRaces(self)
+    }
 }
 
 impl DbcTable for ChrRaces {

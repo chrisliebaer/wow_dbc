@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UISoundLookups {
     pub rows: Vec<UISoundLookupsRow>,
+}
+
+impl Into<VanillaTable> for UISoundLookups {
+    fn into(self) -> VanillaTable {
+        VanillaTable::UISoundLookups(self)
+    }
 }
 
 impl DbcTable for UISoundLookups {

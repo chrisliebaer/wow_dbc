@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::object_effect_package::ObjectEffectPackageKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GameObjectDisplayInfo {
     pub rows: Vec<GameObjectDisplayInfoRow>,
+}
+
+impl Into<WrathTable> for GameObjectDisplayInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::GameObjectDisplayInfo(self)
+    }
 }
 
 impl DbcTable for GameObjectDisplayInfo {

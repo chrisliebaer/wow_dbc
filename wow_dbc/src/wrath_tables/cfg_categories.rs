@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cfg_Categories {
     pub rows: Vec<Cfg_CategoriesRow>,
+}
+
+impl Into<WrathTable> for Cfg_Categories {
+    fn into(self) -> WrathTable {
+        WrathTable::Cfg_Categories(self)
+    }
 }
 
 impl DbcTable for Cfg_Categories {

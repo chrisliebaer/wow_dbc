@@ -9,11 +9,18 @@ use crate::wrath_tables::wmo_area_table::WMOAreaTableKey;
 use crate::wrath_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
 use crate::wrath_tables::zone_music::ZoneMusicKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldStateZoneSounds {
     pub rows: Vec<WorldStateZoneSoundsRow>,
+}
+
+impl Into<WrathTable> for WorldStateZoneSounds {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldStateZoneSounds(self)
+    }
 }
 
 impl DbcTable for WorldStateZoneSounds {

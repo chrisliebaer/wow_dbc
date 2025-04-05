@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::map::MapKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WorldSafeLocs {
     pub rows: Vec<WorldSafeLocsRow>,
+}
+
+impl Into<TbcTable> for WorldSafeLocs {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldSafeLocs(self)
+    }
 }
 
 impl DbcTable for WorldSafeLocs {

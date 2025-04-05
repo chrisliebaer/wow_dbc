@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::terrain_type::TerrainTypeKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct GroundEffectTexture {
     pub rows: Vec<GroundEffectTextureRow>,
+}
+
+impl Into<VanillaTable> for GroundEffectTexture {
+    fn into(self) -> VanillaTable {
+        VanillaTable::GroundEffectTexture(self)
+    }
 }
 
 impl DbcTable for GroundEffectTexture {

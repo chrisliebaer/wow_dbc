@@ -8,11 +8,18 @@ use crate::wrath_tables::dungeon_map::DungeonMapKey;
 use crate::wrath_tables::map::MapKey;
 use crate::wrath_tables::wmo_area_table::WMOAreaTableKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DungeonMapChunk {
     pub rows: Vec<DungeonMapChunkRow>,
+}
+
+impl Into<WrathTable> for DungeonMapChunk {
+    fn into(self) -> WrathTable {
+        WrathTable::DungeonMapChunk(self)
+    }
 }
 
 impl DbcTable for DungeonMapChunk {

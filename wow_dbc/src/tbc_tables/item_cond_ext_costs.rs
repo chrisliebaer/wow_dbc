@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::item_extended_cost::ItemExtendedCostKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ItemCondExtCosts {
     pub rows: Vec<ItemCondExtCostsRow>,
+}
+
+impl Into<TbcTable> for ItemCondExtCosts {
+    fn into(self) -> TbcTable {
+        TbcTable::ItemCondExtCosts(self)
+    }
 }
 
 impl DbcTable for ItemCondExtCosts {

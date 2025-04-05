@@ -7,12 +7,19 @@ use crate::header::{
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::terrain_type::TerrainTypeKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SizeClass;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct DeathThudLookups {
     pub rows: Vec<DeathThudLookupsRow>,
+}
+
+impl Into<VanillaTable> for DeathThudLookups {
+    fn into(self) -> VanillaTable {
+        VanillaTable::DeathThudLookups(self)
+    }
 }
 
 impl DbcTable for DeathThudLookups {

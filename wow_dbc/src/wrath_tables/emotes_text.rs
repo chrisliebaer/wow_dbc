@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::emotes::EmotesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EmotesText {
     pub rows: Vec<EmotesTextRow>,
+}
+
+impl Into<WrathTable> for EmotesText {
+    fn into(self) -> WrathTable {
+        WrathTable::EmotesText(self)
+    }
 }
 
 impl DbcTable for EmotesText {

@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Achievement_Category {
     pub rows: Vec<Achievement_CategoryRow>,
+}
+
+impl Into<WrathTable> for Achievement_Category {
+    fn into(self) -> WrathTable {
+        WrathTable::Achievement_Category(self)
+    }
 }
 
 impl DbcTable for Achievement_Category {

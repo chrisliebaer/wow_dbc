@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtRegenHPPerSpt {
     pub rows: Vec<gtRegenHPPerSptRow>,
+}
+
+impl Into<WrathTable> for gtRegenHPPerSpt {
+    fn into(self) -> WrathTable {
+        WrathTable::gtRegenHPPerSpt(self)
+    }
 }
 
 impl DbcTable for gtRegenHPPerSpt {

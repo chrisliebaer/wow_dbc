@@ -5,6 +5,7 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     InstanceType, LfgFaction,
 };
@@ -13,6 +14,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LFGDungeons {
     pub rows: Vec<LFGDungeonsRow>,
+}
+
+impl Into<VanillaTable> for LFGDungeons {
+    fn into(self) -> VanillaTable {
+        VanillaTable::LFGDungeons(self)
+    }
 }
 
 impl DbcTable for LFGDungeons {

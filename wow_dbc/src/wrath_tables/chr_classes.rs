@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::wrath_tables::cinematic_sequences::CinematicSequencesKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct ChrClasses {
     pub rows: Vec<ChrClassesRow>,
+}
+
+impl Into<WrathTable> for ChrClasses {
+    fn into(self) -> WrathTable {
+        WrathTable::ChrClasses(self)
+    }
 }
 
 impl DbcTable for ChrClasses {

@@ -7,11 +7,18 @@ use crate::header::{
 use crate::tbc_tables::skill_line::SkillLineKey;
 use crate::tbc_tables::spell::SpellKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SkillLineAbility {
     pub rows: Vec<SkillLineAbilityRow>,
+}
+
+impl Into<TbcTable> for SkillLineAbility {
+    fn into(self) -> TbcTable {
+        TbcTable::SkillLineAbility(self)
+    }
 }
 
 impl DbcTable for SkillLineAbility {

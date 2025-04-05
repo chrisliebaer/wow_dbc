@@ -5,11 +5,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Exhaustion {
     pub rows: Vec<ExhaustionRow>,
+}
+
+impl Into<VanillaTable> for Exhaustion {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Exhaustion(self)
+    }
 }
 
 impl DbcTable for Exhaustion {

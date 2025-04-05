@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::tbc_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CreatureDisplayInfoExtra {
     pub rows: Vec<CreatureDisplayInfoExtraRow>,
+}
+
+impl Into<TbcTable> for CreatureDisplayInfoExtra {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureDisplayInfoExtra(self)
+    }
 }
 
 impl DbcTable for CreatureDisplayInfoExtra {

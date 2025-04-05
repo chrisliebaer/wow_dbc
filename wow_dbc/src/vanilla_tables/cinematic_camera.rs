@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CinematicCamera {
     pub rows: Vec<CinematicCameraRow>,
+}
+
+impl Into<VanillaTable> for CinematicCamera {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CinematicCamera(self)
+    }
 }
 
 impl DbcTable for CinematicCamera {

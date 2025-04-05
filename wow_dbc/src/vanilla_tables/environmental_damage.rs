@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::spell_visual_kit::SpellVisualKitKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EnvironmentalDamage {
     pub rows: Vec<EnvironmentalDamageRow>,
+}
+
+impl Into<VanillaTable> for EnvironmentalDamage {
+    fn into(self) -> VanillaTable {
+        VanillaTable::EnvironmentalDamage(self)
+    }
 }
 
 impl DbcTable for EnvironmentalDamage {

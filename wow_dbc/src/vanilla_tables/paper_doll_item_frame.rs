@@ -3,11 +3,18 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PaperDollItemFrame {
     pub rows: Vec<PaperDollItemFrameRow>,
+}
+
+impl Into<VanillaTable> for PaperDollItemFrame {
+    fn into(self) -> VanillaTable {
+        VanillaTable::PaperDollItemFrame(self)
+    }
 }
 
 impl DbcTable for PaperDollItemFrame {

@@ -6,6 +6,7 @@ use crate::header::{
 };
 use crate::vanilla_tables::chr_races::ChrRacesKey;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     Gender, SelectionType,
 };
@@ -14,6 +15,12 @@ use wow_world_base::vanilla::{
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CharSections {
     pub rows: Vec<CharSectionsRow>,
+}
+
+impl Into<VanillaTable> for CharSections {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharSections(self)
+    }
 }
 
 impl DbcTable for CharSections {

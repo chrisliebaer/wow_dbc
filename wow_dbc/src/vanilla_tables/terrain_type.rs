@@ -7,11 +7,18 @@ use crate::header::{
 use crate::vanilla_tables::sound_entries::SoundEntriesKey;
 use crate::vanilla_tables::spell_visual_effect_name::SpellVisualEffectNameKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TerrainType {
     pub rows: Vec<TerrainTypeRow>,
+}
+
+impl Into<VanillaTable> for TerrainType {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TerrainType(self)
+    }
 }
 
 impl DbcTable for TerrainType {

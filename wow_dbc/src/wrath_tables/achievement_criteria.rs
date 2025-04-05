@@ -6,12 +6,19 @@ use crate::header::{
 };
 use crate::wrath_tables::achievement::AchievementKey;
 use std::io::Write;
+use super::WrathTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Achievement_Criteria {
     pub rows: Vec<Achievement_CriteriaRow>,
+}
+
+impl Into<WrathTable> for Achievement_Criteria {
+    fn into(self) -> WrathTable {
+        WrathTable::Achievement_Criteria(self)
+    }
 }
 
 impl DbcTable for Achievement_Criteria {

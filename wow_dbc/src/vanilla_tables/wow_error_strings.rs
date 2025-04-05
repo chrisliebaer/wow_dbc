@@ -5,12 +5,19 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use std::io::Write;
+use super::VanillaTable;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct WowError_Strings {
     pub rows: Vec<WowError_StringsRow>,
+}
+
+impl Into<VanillaTable> for WowError_Strings {
+    fn into(self) -> VanillaTable {
+        VanillaTable::WowError_Strings(self)
+    }
 }
 
 impl DbcTable for WowError_Strings {

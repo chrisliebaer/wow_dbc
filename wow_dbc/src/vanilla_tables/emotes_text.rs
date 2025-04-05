@@ -6,11 +6,18 @@ use crate::header::{
 };
 use crate::vanilla_tables::emotes::EmotesKey;
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct EmotesText {
     pub rows: Vec<EmotesTextRow>,
+}
+
+impl Into<VanillaTable> for EmotesText {
+    fn into(self) -> VanillaTable {
+        VanillaTable::EmotesText(self)
+    }
 }
 
 impl DbcTable for EmotesText {
