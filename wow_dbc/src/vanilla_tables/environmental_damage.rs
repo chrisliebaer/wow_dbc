@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::spell_visual_kit::SpellVisualKitKey;
+use crate::vanilla_tables::spell_visual_kit::{
+    SpellVisualKit, SpellVisualKitKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type EnvironmentalDamageKey = crate::PrimaryKey<u32, EnvironmentalDamage>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct EnvironmentalDamage {
     pub rows: Vec<EnvironmentalDamageRow>,
 }
 
+impl EnvironmentalDamage {
+    pub const FILENAME: &'static str = "EnvironmentalDamage.dbc";
+    pub const FIELD_COUNT: usize = 3;
+    pub const ROW_SIZE: usize = 12;
+
+    pub fn verify(&self, spell_visual_kit: &SpellVisualKit) -> Result<(), crate::InvalidForeignKeyError<&EnvironmentalDamageRow>> {
+        for row in &self.rows {
+            if row.spell_visual_kit.id != 0 && spell_visual_kit.get(&row.spell_visual_kit).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<EnvironmentalDamage>(),
+                    row,
+                    id,
+                    row.spell_visual_kit.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for EnvironmentalDamage {
+    fn into(self) -> VanillaTable {
+        VanillaTable::EnvironmentalDamage(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for EnvironmentalDamage {
-    type Row = EnvironmentalDamageRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "EnvironmentalDamage.dbc";
-    const FIELD_COUNT: usize = 3;
-    const ROW_SIZE: usize = 12;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[EnvironmentalDamageRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [EnvironmentalDamageRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -108,96 +142,16 @@ impl DbcTable for EnvironmentalDamage {
 
 }
 
-impl Indexable for EnvironmentalDamage {
-    type PrimaryKey = EnvironmentalDamageKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for EnvironmentalDamage {
+    type Table = Self;
+
+    fn get(&self, key: &EnvironmentalDamageKey) -> Option<&EnvironmentalDamageRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct EnvironmentalDamageKey {
-    pub id: u32
-}
-
-impl EnvironmentalDamageKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for EnvironmentalDamageKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for EnvironmentalDamageKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for EnvironmentalDamageKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for EnvironmentalDamageKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for EnvironmentalDamageKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for EnvironmentalDamageKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for EnvironmentalDamageKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for EnvironmentalDamageKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for EnvironmentalDamageKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for EnvironmentalDamageKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &EnvironmentalDamageKey) -> Option<&mut EnvironmentalDamageRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -207,6 +161,9 @@ pub struct EnvironmentalDamageRow {
     pub id: EnvironmentalDamageKey,
     pub en: i32,
     pub spell_visual_kit: SpellVisualKitKey,
+}
+
+impl DbcRow for EnvironmentalDamageRow {
 }
 
 #[cfg(test)]

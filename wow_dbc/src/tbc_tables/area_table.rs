@@ -1,17 +1,30 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::map::MapKey;
-use crate::tbc_tables::sound_ambience::SoundAmbienceKey;
-use crate::tbc_tables::sound_provider_preferences::SoundProviderPreferencesKey;
-use crate::tbc_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
-use crate::tbc_tables::zone_music::ZoneMusicKey;
+use crate::tbc_tables::map::{
+    Map, MapKey,
+};
+use crate::tbc_tables::sound_ambience::{
+    SoundAmbience, SoundAmbienceKey,
+};
+use crate::tbc_tables::sound_provider_preferences::{
+    SoundProviderPreferences, SoundProviderPreferencesKey,
+};
+use crate::tbc_tables::zone_intro_music_table::{
+    ZoneIntroMusicTable, ZoneIntroMusicTableKey,
+};
+use crate::tbc_tables::zone_music::{
+    ZoneMusic, ZoneMusicKey,
+};
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type AreaTableKey = crate::PrimaryKey<i32, AreaTable>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -19,15 +32,104 @@ pub struct AreaTable {
     pub rows: Vec<AreaTableRow>,
 }
 
+impl AreaTable {
+    pub const FILENAME: &'static str = "AreaTable.dbc";
+    pub const FIELD_COUNT: usize = 35;
+    pub const ROW_SIZE: usize = 140;
+
+    pub fn verify(&self, map: &Map, sound_ambience: &SoundAmbience, sound_provider_preferences: &SoundProviderPreferences, zone_intro_music_table: &ZoneIntroMusicTable, zone_music: &ZoneMusic) -> Result<(), crate::InvalidForeignKeyError<&AreaTableRow>> {
+        for row in &self.rows {
+            if row.continent_id.id != 0 && map.get(&row.continent_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.continent_id.id.into()
+                ));
+            }
+
+            if row.parent_area_id.id != 0 && self.get(&row.parent_area_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.parent_area_id.id.into()
+                ));
+            }
+
+            if row.sound_provider_pref.id != 0 && sound_provider_preferences.get(&row.sound_provider_pref).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.sound_provider_pref.id.into()
+                ));
+            }
+
+            if row.sound_provider_pref_underwater.id != 0 && sound_provider_preferences.get(&row.sound_provider_pref_underwater).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.sound_provider_pref_underwater.id.into()
+                ));
+            }
+
+            if row.ambience_id.id != 0 && sound_ambience.get(&row.ambience_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.ambience_id.id.into()
+                ));
+            }
+
+            if row.zone_music.id != 0 && zone_music.get(&row.zone_music).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.zone_music.id.into()
+                ));
+            }
+
+            if row.intro_sound.id != 0 && zone_intro_music_table.get(&row.intro_sound).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AreaTable>(),
+                    row,
+                    id,
+                    row.intro_sound.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for AreaTable {
+    fn into(self) -> TbcTable {
+        TbcTable::AreaTable(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for AreaTable {
-    type Row = AreaTableRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "AreaTable.dbc";
-    const FIELD_COUNT: usize = 35;
-    const ROW_SIZE: usize = 140;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[AreaTableRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [AreaTableRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -209,94 +311,16 @@ impl DbcTable for AreaTable {
 
 }
 
-impl Indexable for AreaTable {
-    type PrimaryKey = AreaTableKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for AreaTable {
+    type Table = Self;
+
+    fn get(&self, key: &AreaTableKey) -> Option<&AreaTableRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AreaTableKey {
-    pub id: i32
-}
-
-impl AreaTableKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for AreaTableKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for AreaTableKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for AreaTableKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for AreaTableKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for AreaTableKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for AreaTableKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for AreaTableKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for AreaTableKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for AreaTableKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for AreaTableKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &AreaTableKey) -> Option<&mut AreaTableRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -319,6 +343,9 @@ pub struct AreaTableRow {
     pub liquid_type_id: [i32; 4],
     pub min_elevation: f32,
     pub ambient_multiplier: f32,
+}
+
+impl DbcRow for AreaTableRow {
 }
 
 #[cfg(test)]

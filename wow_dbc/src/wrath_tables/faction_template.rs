@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::faction::FactionKey;
-use crate::wrath_tables::faction_group::FactionGroupKey;
+use crate::wrath_tables::faction::{
+    Faction, FactionKey,
+};
+use crate::wrath_tables::faction_group::{
+    FactionGroup, FactionGroupKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type FactionTemplateKey = crate::PrimaryKey<i32, FactionTemplate>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct FactionTemplate {
     pub rows: Vec<FactionTemplateRow>,
 }
 
+impl FactionTemplate {
+    pub const FILENAME: &'static str = "FactionTemplate.dbc";
+    pub const FIELD_COUNT: usize = 14;
+    pub const ROW_SIZE: usize = 56;
+
+    pub fn verify(&self, faction: &Faction, faction_group: &FactionGroup) -> Result<(), crate::InvalidForeignKeyError<&FactionTemplateRow>> {
+        for row in &self.rows {
+            if row.faction.id != 0 && faction.get(&row.faction).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<FactionTemplate>(),
+                    row,
+                    id,
+                    row.faction.id.into()
+                ));
+            }
+
+            if row.faction_group.id != 0 && faction_group.get(&row.faction_group).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<FactionTemplate>(),
+                    row,
+                    id,
+                    row.faction_group.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for FactionTemplate {
+    fn into(self) -> WrathTable {
+        WrathTable::FactionTemplate(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for FactionTemplate {
-    type Row = FactionTemplateRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "FactionTemplate.dbc";
-    const FIELD_COUNT: usize = 14;
-    const ROW_SIZE: usize = 56;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[FactionTemplateRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [FactionTemplateRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -150,94 +196,16 @@ impl DbcTable for FactionTemplate {
 
 }
 
-impl Indexable for FactionTemplate {
-    type PrimaryKey = FactionTemplateKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for FactionTemplate {
+    type Table = Self;
+
+    fn get(&self, key: &FactionTemplateKey) -> Option<&FactionTemplateRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FactionTemplateKey {
-    pub id: i32
-}
-
-impl FactionTemplateKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for FactionTemplateKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for FactionTemplateKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for FactionTemplateKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for FactionTemplateKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for FactionTemplateKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for FactionTemplateKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for FactionTemplateKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for FactionTemplateKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for FactionTemplateKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for FactionTemplateKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &FactionTemplateKey) -> Option<&mut FactionTemplateRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -252,6 +220,9 @@ pub struct FactionTemplateRow {
     pub enemy_group: i32,
     pub enemies: [i32; 4],
     pub friend: [i32; 4],
+}
+
+impl DbcRow for FactionTemplateRow {
 }
 
 #[cfg(test)]

@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::taxi_path::TaxiPathKey;
+use crate::tbc_tables::taxi_path::{
+    TaxiPath, TaxiPathKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type LoadingScreenTaxiSplinesKey = crate::PrimaryKey<i32, LoadingScreenTaxiSplines>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct LoadingScreenTaxiSplines {
     pub rows: Vec<LoadingScreenTaxiSplinesRow>,
 }
 
+impl LoadingScreenTaxiSplines {
+    pub const FILENAME: &'static str = "LoadingScreenTaxiSplines.dbc";
+    pub const FIELD_COUNT: usize = 19;
+    pub const ROW_SIZE: usize = 76;
+
+    pub fn verify(&self, taxi_path: &TaxiPath) -> Result<(), crate::InvalidForeignKeyError<&LoadingScreenTaxiSplinesRow>> {
+        for row in &self.rows {
+            if row.path_id.id != 0 && taxi_path.get(&row.path_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LoadingScreenTaxiSplines>(),
+                    row,
+                    id,
+                    row.path_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for LoadingScreenTaxiSplines {
+    fn into(self) -> TbcTable {
+        TbcTable::LoadingScreenTaxiSplines(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for LoadingScreenTaxiSplines {
-    type Row = LoadingScreenTaxiSplinesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "LoadingScreenTaxiSplines.dbc";
-    const FIELD_COUNT: usize = 19;
-    const ROW_SIZE: usize = 76;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[LoadingScreenTaxiSplinesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [LoadingScreenTaxiSplinesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -128,94 +162,16 @@ impl DbcTable for LoadingScreenTaxiSplines {
 
 }
 
-impl Indexable for LoadingScreenTaxiSplines {
-    type PrimaryKey = LoadingScreenTaxiSplinesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for LoadingScreenTaxiSplines {
+    type Table = Self;
+
+    fn get(&self, key: &LoadingScreenTaxiSplinesKey) -> Option<&LoadingScreenTaxiSplinesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LoadingScreenTaxiSplinesKey {
-    pub id: i32
-}
-
-impl LoadingScreenTaxiSplinesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for LoadingScreenTaxiSplinesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for LoadingScreenTaxiSplinesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for LoadingScreenTaxiSplinesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for LoadingScreenTaxiSplinesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for LoadingScreenTaxiSplinesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for LoadingScreenTaxiSplinesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for LoadingScreenTaxiSplinesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for LoadingScreenTaxiSplinesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for LoadingScreenTaxiSplinesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for LoadingScreenTaxiSplinesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &LoadingScreenTaxiSplinesKey) -> Option<&mut LoadingScreenTaxiSplinesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -227,6 +183,9 @@ pub struct LoadingScreenTaxiSplinesRow {
     pub locx: [f32; 8],
     pub locy: [f32; 8],
     pub leg_index: i32,
+}
+
+impl DbcRow for LoadingScreenTaxiSplinesRow {
 }
 
 #[cfg(test)]

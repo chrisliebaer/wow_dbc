@@ -1,13 +1,18 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::vanilla_tables::spell_icon::SpellIconKey;
+use crate::vanilla_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type SpellShapeshiftFormKey = crate::PrimaryKey<u32, SpellShapeshiftForm>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +20,44 @@ pub struct SpellShapeshiftForm {
     pub rows: Vec<SpellShapeshiftFormRow>,
 }
 
+impl SpellShapeshiftForm {
+    pub const FILENAME: &'static str = "SpellShapeshiftForm.dbc";
+    pub const FIELD_COUNT: usize = 14;
+    pub const ROW_SIZE: usize = 56;
+
+    pub fn verify(&self, spell_icon: &SpellIcon) -> Result<(), crate::InvalidForeignKeyError<&SpellShapeshiftFormRow>> {
+        for row in &self.rows {
+            if row.spell_icon.id != 0 && spell_icon.get(&row.spell_icon).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellShapeshiftForm>(),
+                    row,
+                    id,
+                    row.spell_icon.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for SpellShapeshiftForm {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellShapeshiftForm(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellShapeshiftForm {
-    type Row = SpellShapeshiftFormRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellShapeshiftForm.dbc";
-    const FIELD_COUNT: usize = 14;
-    const ROW_SIZE: usize = 56;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellShapeshiftFormRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellShapeshiftFormRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -132,96 +166,16 @@ impl DbcTable for SpellShapeshiftForm {
 
 }
 
-impl Indexable for SpellShapeshiftForm {
-    type PrimaryKey = SpellShapeshiftFormKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for SpellShapeshiftForm {
+    type Table = Self;
+
+    fn get(&self, key: &SpellShapeshiftFormKey) -> Option<&SpellShapeshiftFormRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellShapeshiftFormKey {
-    pub id: u32
-}
-
-impl SpellShapeshiftFormKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellShapeshiftFormKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellShapeshiftFormKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for SpellShapeshiftFormKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for SpellShapeshiftFormKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellShapeshiftFormKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for SpellShapeshiftFormKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for SpellShapeshiftFormKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for SpellShapeshiftFormKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellShapeshiftFormKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellShapeshiftFormKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellShapeshiftFormKey) -> Option<&mut SpellShapeshiftFormRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -234,6 +188,9 @@ pub struct SpellShapeshiftFormRow {
     pub flags: i32,
     pub creature_type: i32,
     pub spell_icon: SpellIconKey,
+}
+
+impl DbcRow for SpellShapeshiftFormRow {
 }
 
 #[cfg(test)]

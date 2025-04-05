@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,9 +7,12 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     InstanceType, LfgFaction,
 };
+
+pub type LFGDungeonsKey = crate::PrimaryKey<u32, LFGDungeons>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -17,15 +20,27 @@ pub struct LFGDungeons {
     pub rows: Vec<LFGDungeonsRow>,
 }
 
+impl LFGDungeons {
+    pub const FILENAME: &'static str = "LFGDungeons.dbc";
+    pub const FIELD_COUNT: usize = 14;
+    pub const ROW_SIZE: usize = 56;
+
+}
+
+impl Into<VanillaTable> for LFGDungeons {
+    fn into(self) -> VanillaTable {
+        VanillaTable::LFGDungeons(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for LFGDungeons {
-    type Row = LFGDungeonsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "LFGDungeons.dbc";
-    const FIELD_COUNT: usize = 14;
-    const ROW_SIZE: usize = 56;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[LFGDungeonsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [LFGDungeonsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -134,96 +149,16 @@ impl DbcTable for LFGDungeons {
 
 }
 
-impl Indexable for LFGDungeons {
-    type PrimaryKey = LFGDungeonsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for LFGDungeons {
+    type Table = Self;
+
+    fn get(&self, key: &LFGDungeonsKey) -> Option<&LFGDungeonsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LFGDungeonsKey {
-    pub id: u32
-}
-
-impl LFGDungeonsKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for LFGDungeonsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for LFGDungeonsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for LFGDungeonsKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for LFGDungeonsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for LFGDungeonsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for LFGDungeonsKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for LFGDungeonsKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for LFGDungeonsKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for LFGDungeonsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for LFGDungeonsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &LFGDungeonsKey) -> Option<&mut LFGDungeonsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -236,6 +171,9 @@ pub struct LFGDungeonsRow {
     pub max_allowed_level: u32,
     pub instance_type: InstanceType,
     pub faction: LfgFaction,
+}
+
+impl DbcRow for LFGDungeonsRow {
 }
 
 #[cfg(test)]

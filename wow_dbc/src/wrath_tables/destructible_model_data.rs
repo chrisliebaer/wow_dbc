@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type DestructibleModelDataKey = crate::PrimaryKey<i32, DestructibleModelData>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct DestructibleModelData {
     pub rows: Vec<DestructibleModelDataRow>,
 }
 
+impl DestructibleModelData {
+    pub const FILENAME: &'static str = "DestructibleModelData.dbc";
+    pub const FIELD_COUNT: usize = 19;
+    pub const ROW_SIZE: usize = 76;
+
+}
+
+impl Into<WrathTable> for DestructibleModelData {
+    fn into(self) -> WrathTable {
+        WrathTable::DestructibleModelData(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for DestructibleModelData {
-    type Row = DestructibleModelDataRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "DestructibleModelData.dbc";
-    const FIELD_COUNT: usize = 19;
-    const ROW_SIZE: usize = 76;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[DestructibleModelDataRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [DestructibleModelDataRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -219,94 +234,16 @@ impl DbcTable for DestructibleModelData {
 
 }
 
-impl Indexable for DestructibleModelData {
-    type PrimaryKey = DestructibleModelDataKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for DestructibleModelData {
+    type Table = Self;
+
+    fn get(&self, key: &DestructibleModelDataKey) -> Option<&DestructibleModelDataRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DestructibleModelDataKey {
-    pub id: i32
-}
-
-impl DestructibleModelDataKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for DestructibleModelDataKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for DestructibleModelDataKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for DestructibleModelDataKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for DestructibleModelDataKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for DestructibleModelDataKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for DestructibleModelDataKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for DestructibleModelDataKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for DestructibleModelDataKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for DestructibleModelDataKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for DestructibleModelDataKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &DestructibleModelDataKey) -> Option<&mut DestructibleModelDataRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -332,6 +269,9 @@ pub struct DestructibleModelDataRow {
     pub do_not_highlight: i32,
     pub heal_effect: i32,
     pub heal_effect_speed: i32,
+}
+
+impl DbcRow for DestructibleModelDataRow {
 }
 
 #[cfg(test)]

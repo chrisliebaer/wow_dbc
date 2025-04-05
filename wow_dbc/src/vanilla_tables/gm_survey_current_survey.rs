@@ -1,10 +1,15 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::gm_survey_surveys::GMSurveySurveysKey;
+use crate::vanilla_tables::gm_survey_surveys::{
+    GMSurveySurveys, GMSurveySurveysKey,
+};
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::ClientLanguage;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -13,15 +18,44 @@ pub struct GMSurveyCurrentSurvey {
     pub rows: Vec<GMSurveyCurrentSurveyRow>,
 }
 
+impl GMSurveyCurrentSurvey {
+    pub const FILENAME: &'static str = "GMSurveyCurrentSurvey.dbc";
+    pub const FIELD_COUNT: usize = 2;
+    pub const ROW_SIZE: usize = 8;
+
+    pub fn verify(&self, gm_survey_surveys: &GMSurveySurveys) -> Result<(), crate::InvalidForeignKeyError<&GMSurveyCurrentSurveyRow>> {
+        for row in &self.rows {
+            if row.gm_survey.id != 0 && gm_survey_surveys.get(&row.gm_survey).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<GMSurveyCurrentSurvey>(),
+                    row,
+                    id,
+                    row.gm_survey.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for GMSurveyCurrentSurvey {
+    fn into(self) -> VanillaTable {
+        VanillaTable::GMSurveyCurrentSurvey(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for GMSurveyCurrentSurvey {
-    type Row = GMSurveyCurrentSurveyRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "GMSurveyCurrentSurvey.dbc";
-    const FIELD_COUNT: usize = 2;
-    const ROW_SIZE: usize = 8;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[GMSurveyCurrentSurveyRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [GMSurveyCurrentSurveyRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -105,6 +139,9 @@ impl DbcTable for GMSurveyCurrentSurvey {
 pub struct GMSurveyCurrentSurveyRow {
     pub language: ClientLanguage,
     pub gm_survey: GMSurveySurveysKey,
+}
+
+impl DbcRow for GMSurveyCurrentSurveyRow {
 }
 
 #[cfg(test)]

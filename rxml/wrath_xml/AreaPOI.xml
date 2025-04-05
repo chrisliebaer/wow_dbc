@@ -72,7 +72,7 @@
     <type>int32</type>
 <key>
     <type>foreign</type>
-    <parent>WorldState</parent>
+    <parent>WorldStateUI</parent>
 </key>
 </field>
 

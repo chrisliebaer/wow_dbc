@@ -1,15 +1,30 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::area_table::AreaTableKey;
-use crate::tbc_tables::sound_ambience::SoundAmbienceKey;
-use crate::tbc_tables::sound_provider_preferences::SoundProviderPreferencesKey;
-use crate::tbc_tables::wmo_area_table::WMOAreaTableKey;
-use crate::tbc_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
-use crate::tbc_tables::zone_music::ZoneMusicKey;
+use crate::tbc_tables::area_table::{
+    AreaTable, AreaTableKey,
+};
+use crate::tbc_tables::sound_ambience::{
+    SoundAmbience, SoundAmbienceKey,
+};
+use crate::tbc_tables::sound_provider_preferences::{
+    SoundProviderPreferences, SoundProviderPreferencesKey,
+};
+use crate::tbc_tables::wmo_area_table::{
+    WMOAreaTable, WMOAreaTableKey,
+};
+use crate::tbc_tables::zone_intro_music_table::{
+    ZoneIntroMusicTable, ZoneIntroMusicTableKey,
+};
+use crate::tbc_tables::zone_music::{
+    ZoneMusic, ZoneMusicKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -17,15 +32,94 @@ pub struct WorldStateZoneSounds {
     pub rows: Vec<WorldStateZoneSoundsRow>,
 }
 
+impl WorldStateZoneSounds {
+    pub const FILENAME: &'static str = "WorldStateZoneSounds.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+    pub fn verify(&self, area_table: &AreaTable, sound_ambience: &SoundAmbience, sound_provider_preferences: &SoundProviderPreferences, wmo_area_table: &WMOAreaTable, zone_intro_music_table: &ZoneIntroMusicTable, zone_music: &ZoneMusic) -> Result<(), crate::InvalidForeignKeyError<&WorldStateZoneSoundsRow>> {
+        for row in &self.rows {
+            if row.area_id.id != 0 && area_table.get(&row.area_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.area_id.id.into()
+                ));
+            }
+
+            if row.w_m_o_area_id.id != 0 && wmo_area_table.get(&row.w_m_o_area_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.w_m_o_area_id.id.into()
+                ));
+            }
+
+            if row.zone_intro_music_id.id != 0 && zone_intro_music_table.get(&row.zone_intro_music_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.zone_intro_music_id.id.into()
+                ));
+            }
+
+            if row.zone_music_id.id != 0 && zone_music.get(&row.zone_music_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.zone_music_id.id.into()
+                ));
+            }
+
+            if row.sound_ambience_id.id != 0 && sound_ambience.get(&row.sound_ambience_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.sound_ambience_id.id.into()
+                ));
+            }
+
+            if row.sound_provider_preferences_id.id != 0 && sound_provider_preferences.get(&row.sound_provider_preferences_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldStateZoneSounds>(),
+                    row,
+                    id,
+                    row.sound_provider_preferences_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for WorldStateZoneSounds {
+    fn into(self) -> TbcTable {
+        TbcTable::WorldStateZoneSounds(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for WorldStateZoneSounds {
-    type Row = WorldStateZoneSoundsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "WorldStateZoneSounds.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[WorldStateZoneSoundsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [WorldStateZoneSoundsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -157,6 +251,9 @@ pub struct WorldStateZoneSoundsRow {
     pub zone_music_id: ZoneMusicKey,
     pub sound_ambience_id: SoundAmbienceKey,
     pub sound_provider_preferences_id: SoundProviderPreferencesKey,
+}
+
+impl DbcRow for WorldStateZoneSoundsRow {
 }
 
 #[cfg(test)]

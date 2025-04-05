@@ -1,14 +1,23 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::animation_data::AnimationDataKey;
-use crate::wrath_tables::sound_entries::SoundEntriesKey;
-use crate::wrath_tables::spell_effect_camera_shakes::SpellEffectCameraShakesKey;
+use crate::wrath_tables::animation_data::{
+    AnimationData, AnimationDataKey,
+};
+use crate::wrath_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
+use crate::wrath_tables::spell_effect_camera_shakes::{
+    SpellEffectCameraShakes, SpellEffectCameraShakesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type SpellVisualKitKey = crate::PrimaryKey<i32, SpellVisualKit>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +25,74 @@ pub struct SpellVisualKit {
     pub rows: Vec<SpellVisualKitRow>,
 }
 
+impl SpellVisualKit {
+    pub const FILENAME: &'static str = "SpellVisualKit.dbc";
+    pub const FIELD_COUNT: usize = 38;
+    pub const ROW_SIZE: usize = 152;
+
+    pub fn verify(&self, animation_data: &AnimationData, sound_entries: &SoundEntries, spell_effect_camera_shakes: &SpellEffectCameraShakes) -> Result<(), crate::InvalidForeignKeyError<&SpellVisualKitRow>> {
+        for row in &self.rows {
+            if row.start_anim_id.id != 0 && animation_data.get(&row.start_anim_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKit>(),
+                    row,
+                    id,
+                    row.start_anim_id.id.into()
+                ));
+            }
+
+            if row.anim_id.id != 0 && animation_data.get(&row.anim_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKit>(),
+                    row,
+                    id,
+                    row.anim_id.id.into()
+                ));
+            }
+
+            if row.sound_id.id != 0 && sound_entries.get(&row.sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKit>(),
+                    row,
+                    id,
+                    row.sound_id.id.into()
+                ));
+            }
+
+            if row.shake_id.id != 0 && spell_effect_camera_shakes.get(&row.shake_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKit>(),
+                    row,
+                    id,
+                    row.shake_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for SpellVisualKit {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKit(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellVisualKit {
-    type Row = SpellVisualKitRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellVisualKit.dbc";
-    const FIELD_COUNT: usize = 38;
-    const ROW_SIZE: usize = 152;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellVisualKitRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellVisualKitRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -254,94 +322,16 @@ impl DbcTable for SpellVisualKit {
 
 }
 
-impl Indexable for SpellVisualKit {
-    type PrimaryKey = SpellVisualKitKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SpellVisualKit {
+    type Table = Self;
+
+    fn get(&self, key: &SpellVisualKitKey) -> Option<&SpellVisualKitRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellVisualKitKey {
-    pub id: i32
-}
-
-impl SpellVisualKitKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellVisualKitKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellVisualKitKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SpellVisualKitKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SpellVisualKitKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SpellVisualKitKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SpellVisualKitKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellVisualKitKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SpellVisualKitKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellVisualKitKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellVisualKitKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellVisualKitKey) -> Option<&mut SpellVisualKitRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -369,6 +359,9 @@ pub struct SpellVisualKitRow {
     pub char_param_two: [f32; 4],
     pub char_param_three: [f32; 4],
     pub flags: i32,
+}
+
+impl DbcRow for SpellVisualKitRow {
 }
 
 #[cfg(test)]

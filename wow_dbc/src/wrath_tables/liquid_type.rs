@@ -1,15 +1,26 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::light::LightKey;
-use crate::wrath_tables::liquid_material::LiquidMaterialKey;
-use crate::wrath_tables::sound_entries::SoundEntriesKey;
-use crate::wrath_tables::spell::SpellKey;
+use crate::wrath_tables::light::{
+    Light, LightKey,
+};
+use crate::wrath_tables::liquid_material::{
+    LiquidMaterial, LiquidMaterialKey,
+};
+use crate::wrath_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
+use crate::wrath_tables::spell::{
+    Spell, SpellKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type LiquidTypeKey = crate::PrimaryKey<i32, LiquidType>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -17,15 +28,74 @@ pub struct LiquidType {
     pub rows: Vec<LiquidTypeRow>,
 }
 
+impl LiquidType {
+    pub const FILENAME: &'static str = "LiquidType.dbc";
+    pub const FIELD_COUNT: usize = 45;
+    pub const ROW_SIZE: usize = 180;
+
+    pub fn verify(&self, light: &Light, liquid_material: &LiquidMaterial, sound_entries: &SoundEntries, spell: &Spell) -> Result<(), crate::InvalidForeignKeyError<&LiquidTypeRow>> {
+        for row in &self.rows {
+            if row.sound_id.id != 0 && sound_entries.get(&row.sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LiquidType>(),
+                    row,
+                    id,
+                    row.sound_id.id.into()
+                ));
+            }
+
+            if row.spell_id.id != 0 && spell.get(&row.spell_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LiquidType>(),
+                    row,
+                    id,
+                    row.spell_id.id.into()
+                ));
+            }
+
+            if row.light_id.id != 0 && light.get(&row.light_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LiquidType>(),
+                    row,
+                    id,
+                    row.light_id.id.into()
+                ));
+            }
+
+            if row.material_id.id != 0 && liquid_material.get(&row.material_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LiquidType>(),
+                    row,
+                    id,
+                    row.material_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for LiquidType {
+    fn into(self) -> WrathTable {
+        WrathTable::LiquidType(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for LiquidType {
-    type Row = LiquidTypeRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "LiquidType.dbc";
-    const FIELD_COUNT: usize = 45;
-    const ROW_SIZE: usize = 180;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[LiquidTypeRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [LiquidTypeRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -251,94 +321,16 @@ impl DbcTable for LiquidType {
 
 }
 
-impl Indexable for LiquidType {
-    type PrimaryKey = LiquidTypeKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for LiquidType {
+    type Table = Self;
+
+    fn get(&self, key: &LiquidTypeKey) -> Option<&LiquidTypeRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LiquidTypeKey {
-    pub id: i32
-}
-
-impl LiquidTypeKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for LiquidTypeKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for LiquidTypeKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for LiquidTypeKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for LiquidTypeKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for LiquidTypeKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for LiquidTypeKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for LiquidTypeKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for LiquidTypeKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for LiquidTypeKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for LiquidTypeKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &LiquidTypeKey) -> Option<&mut LiquidTypeRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -364,6 +356,9 @@ pub struct LiquidTypeRow {
     pub color: [i32; 2],
     pub float: [f32; 18],
     pub int: [i32; 4],
+}
+
+impl DbcRow for LiquidTypeRow {
 }
 
 #[cfg(test)]

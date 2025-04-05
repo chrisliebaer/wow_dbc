@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::chr_races::ChrRacesKey;
+use crate::wrath_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type CharHairTexturesKey = crate::PrimaryKey<i32, CharHairTextures>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct CharHairTextures {
     pub rows: Vec<CharHairTexturesRow>,
 }
 
+impl CharHairTextures {
+    pub const FILENAME: &'static str = "CharHairTextures.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+    pub fn verify(&self, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CharHairTexturesRow>> {
+        for row in &self.rows {
+            if row.field_0_5_3_3368_001_race.id != 0 && chr_races.get(&row.field_0_5_3_3368_001_race).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharHairTextures>(),
+                    row,
+                    id,
+                    row.field_0_5_3_3368_001_race.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for CharHairTextures {
+    fn into(self) -> WrathTable {
+        WrathTable::CharHairTextures(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharHairTextures {
-    type Row = CharHairTexturesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharHairTextures.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharHairTexturesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharHairTexturesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -143,94 +177,16 @@ impl DbcTable for CharHairTextures {
 
 }
 
-impl Indexable for CharHairTextures {
-    type PrimaryKey = CharHairTexturesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for CharHairTextures {
+    type Table = Self;
+
+    fn get(&self, key: &CharHairTexturesKey) -> Option<&CharHairTexturesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CharHairTexturesKey {
-    pub id: i32
-}
-
-impl CharHairTexturesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CharHairTexturesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CharHairTexturesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for CharHairTexturesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for CharHairTexturesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for CharHairTexturesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for CharHairTexturesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CharHairTexturesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for CharHairTexturesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CharHairTexturesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CharHairTexturesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CharHairTexturesKey) -> Option<&mut CharHairTexturesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -245,6 +201,9 @@ pub struct CharHairTexturesRow {
     pub field_0_5_3_3368_005_the_x_in_hair_xy_blp: i32,
     pub field_0_5_3_3368_006: i32,
     pub field_0_5_3_3368_007: i32,
+}
+
+impl DbcRow for CharHairTexturesRow {
 }
 
 #[cfg(test)]

@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct gtNPCManaCostScaler {
     pub rows: Vec<gtNPCManaCostScalerRow>,
 }
 
+impl gtNPCManaCostScaler {
+    pub const FILENAME: &'static str = "gtNPCManaCostScaler.dbc";
+    pub const FIELD_COUNT: usize = 1;
+    pub const ROW_SIZE: usize = 4;
+
+}
+
+impl Into<WrathTable> for gtNPCManaCostScaler {
+    fn into(self) -> WrathTable {
+        WrathTable::gtNPCManaCostScaler(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for gtNPCManaCostScaler {
-    type Row = gtNPCManaCostScalerRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "gtNPCManaCostScaler.dbc";
-    const FIELD_COUNT: usize = 1;
-    const ROW_SIZE: usize = 4;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[gtNPCManaCostScalerRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [gtNPCManaCostScalerRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -95,6 +110,9 @@ impl DbcTable for gtNPCManaCostScaler {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtNPCManaCostScalerRow {
     pub data: f32,
+}
+
+impl DbcRow for gtNPCManaCostScalerRow {
 }
 
 #[cfg(test)]

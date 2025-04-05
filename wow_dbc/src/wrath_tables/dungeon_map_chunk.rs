@@ -1,14 +1,23 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::dungeon_map::DungeonMapKey;
-use crate::wrath_tables::map::MapKey;
-use crate::wrath_tables::wmo_area_table::WMOAreaTableKey;
+use crate::wrath_tables::dungeon_map::{
+    DungeonMap, DungeonMapKey,
+};
+use crate::wrath_tables::map::{
+    Map, MapKey,
+};
+use crate::wrath_tables::wmo_area_table::{
+    WMOAreaTable, WMOAreaTableKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type DungeonMapChunkKey = crate::PrimaryKey<i32, DungeonMapChunk>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +25,64 @@ pub struct DungeonMapChunk {
     pub rows: Vec<DungeonMapChunkRow>,
 }
 
+impl DungeonMapChunk {
+    pub const FILENAME: &'static str = "DungeonMapChunk.dbc";
+    pub const FIELD_COUNT: usize = 5;
+    pub const ROW_SIZE: usize = 20;
+
+    pub fn verify(&self, dungeon_map: &DungeonMap, map: &Map, wmo_area_table: &WMOAreaTable) -> Result<(), crate::InvalidForeignKeyError<&DungeonMapChunkRow>> {
+        for row in &self.rows {
+            if row.map_id.id != 0 && map.get(&row.map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DungeonMapChunk>(),
+                    row,
+                    id,
+                    row.map_id.id.into()
+                ));
+            }
+
+            if row.w_m_o_group_id.id != 0 && wmo_area_table.get(&row.w_m_o_group_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DungeonMapChunk>(),
+                    row,
+                    id,
+                    row.w_m_o_group_id.id.into()
+                ));
+            }
+
+            if row.dungeon_map_id.id != 0 && dungeon_map.get(&row.dungeon_map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DungeonMapChunk>(),
+                    row,
+                    id,
+                    row.dungeon_map_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for DungeonMapChunk {
+    fn into(self) -> WrathTable {
+        WrathTable::DungeonMapChunk(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for DungeonMapChunk {
-    type Row = DungeonMapChunkRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "DungeonMapChunk.dbc";
-    const FIELD_COUNT: usize = 5;
-    const ROW_SIZE: usize = 20;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[DungeonMapChunkRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [DungeonMapChunkRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -124,94 +182,16 @@ impl DbcTable for DungeonMapChunk {
 
 }
 
-impl Indexable for DungeonMapChunk {
-    type PrimaryKey = DungeonMapChunkKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for DungeonMapChunk {
+    type Table = Self;
+
+    fn get(&self, key: &DungeonMapChunkKey) -> Option<&DungeonMapChunkRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DungeonMapChunkKey {
-    pub id: i32
-}
-
-impl DungeonMapChunkKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for DungeonMapChunkKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for DungeonMapChunkKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for DungeonMapChunkKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for DungeonMapChunkKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for DungeonMapChunkKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for DungeonMapChunkKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for DungeonMapChunkKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for DungeonMapChunkKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for DungeonMapChunkKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for DungeonMapChunkKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &DungeonMapChunkKey) -> Option<&mut DungeonMapChunkRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -223,6 +203,9 @@ pub struct DungeonMapChunkRow {
     pub w_m_o_group_id: WMOAreaTableKey,
     pub dungeon_map_id: DungeonMapKey,
     pub min_z: f32,
+}
+
+impl DbcRow for DungeonMapChunkRow {
 }
 
 #[cfg(test)]

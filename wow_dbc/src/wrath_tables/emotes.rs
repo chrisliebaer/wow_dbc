@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::animation_data::AnimationDataKey;
-use crate::wrath_tables::sound_entries::SoundEntriesKey;
+use crate::wrath_tables::animation_data::{
+    AnimationData, AnimationDataKey,
+};
+use crate::wrath_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type EmotesKey = crate::PrimaryKey<i32, Emotes>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct Emotes {
     pub rows: Vec<EmotesRow>,
 }
 
+impl Emotes {
+    pub const FILENAME: &'static str = "Emotes.dbc";
+    pub const FIELD_COUNT: usize = 7;
+    pub const ROW_SIZE: usize = 28;
+
+    pub fn verify(&self, animation_data: &AnimationData, sound_entries: &SoundEntries) -> Result<(), crate::InvalidForeignKeyError<&EmotesRow>> {
+        for row in &self.rows {
+            if row.anim_id.id != 0 && animation_data.get(&row.anim_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Emotes>(),
+                    row,
+                    id,
+                    row.anim_id.id.into()
+                ));
+            }
+
+            if row.event_sound_id.id != 0 && sound_entries.get(&row.event_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Emotes>(),
+                    row,
+                    id,
+                    row.event_sound_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Emotes {
+    fn into(self) -> WrathTable {
+        WrathTable::Emotes(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Emotes {
-    type Row = EmotesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Emotes.dbc";
-    const FIELD_COUNT: usize = 7;
-    const ROW_SIZE: usize = 28;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[EmotesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [EmotesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -142,94 +188,16 @@ impl DbcTable for Emotes {
 
 }
 
-impl Indexable for Emotes {
-    type PrimaryKey = EmotesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Emotes {
+    type Table = Self;
+
+    fn get(&self, key: &EmotesKey) -> Option<&EmotesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct EmotesKey {
-    pub id: i32
-}
-
-impl EmotesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for EmotesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for EmotesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for EmotesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for EmotesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for EmotesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for EmotesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for EmotesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for EmotesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for EmotesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for EmotesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &EmotesKey) -> Option<&mut EmotesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -243,6 +211,9 @@ pub struct EmotesRow {
     pub emote_spec_proc: i32,
     pub emote_spec_proc_param: i32,
     pub event_sound_id: SoundEntriesKey,
+}
+
+impl DbcRow for EmotesRow {
 }
 
 #[cfg(test)]

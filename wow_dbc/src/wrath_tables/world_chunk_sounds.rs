@@ -1,14 +1,23 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::sound_ambience::SoundAmbienceKey;
-use crate::wrath_tables::sound_provider_preferences::SoundProviderPreferencesKey;
-use crate::wrath_tables::zone_music::ZoneMusicKey;
+use crate::wrath_tables::sound_ambience::{
+    SoundAmbience, SoundAmbienceKey,
+};
+use crate::wrath_tables::sound_provider_preferences::{
+    SoundProviderPreferences, SoundProviderPreferencesKey,
+};
+use crate::wrath_tables::zone_music::{
+    ZoneMusic, ZoneMusicKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type WorldChunkSoundsKey = crate::PrimaryKey<i32, WorldChunkSounds>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +25,64 @@ pub struct WorldChunkSounds {
     pub rows: Vec<WorldChunkSoundsRow>,
 }
 
+impl WorldChunkSounds {
+    pub const FILENAME: &'static str = "WorldChunkSounds.dbc";
+    pub const FIELD_COUNT: usize = 9;
+    pub const ROW_SIZE: usize = 36;
+
+    pub fn verify(&self, sound_ambience: &SoundAmbience, sound_provider_preferences: &SoundProviderPreferences, zone_music: &ZoneMusic) -> Result<(), crate::InvalidForeignKeyError<&WorldChunkSoundsRow>> {
+        for row in &self.rows {
+            if row.zone_music_id.id != 0 && zone_music.get(&row.zone_music_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldChunkSounds>(),
+                    row,
+                    id,
+                    row.zone_music_id.id.into()
+                ));
+            }
+
+            if row.sound_ambience_id.id != 0 && sound_ambience.get(&row.sound_ambience_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldChunkSounds>(),
+                    row,
+                    id,
+                    row.sound_ambience_id.id.into()
+                ));
+            }
+
+            if row.sound_provider_preferences_id.id != 0 && sound_provider_preferences.get(&row.sound_provider_preferences_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WorldChunkSounds>(),
+                    row,
+                    id,
+                    row.sound_provider_preferences_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for WorldChunkSounds {
+    fn into(self) -> WrathTable {
+        WrathTable::WorldChunkSounds(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for WorldChunkSounds {
-    type Row = WorldChunkSoundsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "WorldChunkSounds.dbc";
-    const FIELD_COUNT: usize = 9;
-    const ROW_SIZE: usize = 36;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[WorldChunkSoundsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [WorldChunkSoundsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -152,94 +210,16 @@ impl DbcTable for WorldChunkSounds {
 
 }
 
-impl Indexable for WorldChunkSounds {
-    type PrimaryKey = WorldChunkSoundsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for WorldChunkSounds {
+    type Table = Self;
+
+    fn get(&self, key: &WorldChunkSoundsKey) -> Option<&WorldChunkSoundsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WorldChunkSoundsKey {
-    pub id: i32
-}
-
-impl WorldChunkSoundsKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for WorldChunkSoundsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for WorldChunkSoundsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for WorldChunkSoundsKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for WorldChunkSoundsKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for WorldChunkSoundsKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for WorldChunkSoundsKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for WorldChunkSoundsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for WorldChunkSoundsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for WorldChunkSoundsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for WorldChunkSoundsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &WorldChunkSoundsKey) -> Option<&mut WorldChunkSoundsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -255,6 +235,9 @@ pub struct WorldChunkSoundsRow {
     pub zone_music_id: ZoneMusicKey,
     pub sound_ambience_id: SoundAmbienceKey,
     pub sound_provider_preferences_id: SoundProviderPreferencesKey,
+}
+
+impl DbcRow for WorldChunkSoundsRow {
 }
 
 #[cfg(test)]

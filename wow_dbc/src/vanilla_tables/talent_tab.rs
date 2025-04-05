@@ -1,15 +1,24 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::vanilla_tables::chr_classes::ChrClassesKey;
-use crate::vanilla_tables::chr_races::ChrRacesKey;
-use crate::vanilla_tables::spell_icon::SpellIconKey;
+use crate::vanilla_tables::chr_classes::{
+    ChrClasses, ChrClassesKey,
+};
+use crate::vanilla_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
+use crate::vanilla_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type TalentTabKey = crate::PrimaryKey<u32, TalentTab>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -17,15 +26,64 @@ pub struct TalentTab {
     pub rows: Vec<TalentTabRow>,
 }
 
+impl TalentTab {
+    pub const FILENAME: &'static str = "TalentTab.dbc";
+    pub const FIELD_COUNT: usize = 15;
+    pub const ROW_SIZE: usize = 60;
+
+    pub fn verify(&self, chr_classes: &ChrClasses, chr_races: &ChrRaces, spell_icon: &SpellIcon) -> Result<(), crate::InvalidForeignKeyError<&TalentTabRow>> {
+        for row in &self.rows {
+            if row.spell_icon.id != 0 && spell_icon.get(&row.spell_icon).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TalentTab>(),
+                    row,
+                    id,
+                    row.spell_icon.id.into()
+                ));
+            }
+
+            if row.race_mask.id != 0 && chr_races.get(&row.race_mask).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TalentTab>(),
+                    row,
+                    id,
+                    row.race_mask.id.into()
+                ));
+            }
+
+            if row.class_mask.id != 0 && chr_classes.get(&row.class_mask).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TalentTab>(),
+                    row,
+                    id,
+                    row.class_mask.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for TalentTab {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TalentTab(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for TalentTab {
-    type Row = TalentTabRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "TalentTab.dbc";
-    const FIELD_COUNT: usize = 15;
-    const ROW_SIZE: usize = 60;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[TalentTabRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [TalentTabRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -144,96 +202,16 @@ impl DbcTable for TalentTab {
 
 }
 
-impl Indexable for TalentTab {
-    type PrimaryKey = TalentTabKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for TalentTab {
+    type Table = Self;
+
+    fn get(&self, key: &TalentTabKey) -> Option<&TalentTabRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TalentTabKey {
-    pub id: u32
-}
-
-impl TalentTabKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for TalentTabKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for TalentTabKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for TalentTabKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for TalentTabKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for TalentTabKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for TalentTabKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for TalentTabKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for TalentTabKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for TalentTabKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for TalentTabKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &TalentTabKey) -> Option<&mut TalentTabRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -247,6 +225,9 @@ pub struct TalentTabRow {
     pub class_mask: ChrClassesKey,
     pub order_index: u32,
     pub background_file: String,
+}
+
+impl DbcRow for TalentTabRow {
 }
 
 #[cfg(test)]

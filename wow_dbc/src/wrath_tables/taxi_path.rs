@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::taxi_nodes::TaxiNodesKey;
+use crate::wrath_tables::taxi_nodes::{
+    TaxiNodes, TaxiNodesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type TaxiPathKey = crate::PrimaryKey<i32, TaxiPath>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,54 @@ pub struct TaxiPath {
     pub rows: Vec<TaxiPathRow>,
 }
 
+impl TaxiPath {
+    pub const FILENAME: &'static str = "TaxiPath.dbc";
+    pub const FIELD_COUNT: usize = 4;
+    pub const ROW_SIZE: usize = 16;
+
+    pub fn verify(&self, taxi_nodes: &TaxiNodes) -> Result<(), crate::InvalidForeignKeyError<&TaxiPathRow>> {
+        for row in &self.rows {
+            if row.from_taxi_node.id != 0 && taxi_nodes.get(&row.from_taxi_node).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TaxiPath>(),
+                    row,
+                    id,
+                    row.from_taxi_node.id.into()
+                ));
+            }
+
+            if row.to_taxi_node.id != 0 && taxi_nodes.get(&row.to_taxi_node).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TaxiPath>(),
+                    row,
+                    id,
+                    row.to_taxi_node.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for TaxiPath {
+    fn into(self) -> WrathTable {
+        WrathTable::TaxiPath(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for TaxiPath {
-    type Row = TaxiPathRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "TaxiPath.dbc";
-    const FIELD_COUNT: usize = 4;
-    const ROW_SIZE: usize = 16;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[TaxiPathRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [TaxiPathRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -115,94 +159,16 @@ impl DbcTable for TaxiPath {
 
 }
 
-impl Indexable for TaxiPath {
-    type PrimaryKey = TaxiPathKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for TaxiPath {
+    type Table = Self;
+
+    fn get(&self, key: &TaxiPathKey) -> Option<&TaxiPathRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TaxiPathKey {
-    pub id: i32
-}
-
-impl TaxiPathKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for TaxiPathKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for TaxiPathKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for TaxiPathKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for TaxiPathKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for TaxiPathKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for TaxiPathKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for TaxiPathKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for TaxiPathKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for TaxiPathKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for TaxiPathKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &TaxiPathKey) -> Option<&mut TaxiPathRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -213,6 +179,9 @@ pub struct TaxiPathRow {
     pub from_taxi_node: TaxiNodesKey,
     pub to_taxi_node: TaxiNodesKey,
     pub cost: i32,
+}
+
+impl DbcRow for TaxiPathRow {
 }
 
 #[cfg(test)]

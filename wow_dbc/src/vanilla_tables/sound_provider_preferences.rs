@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
+
+pub type SoundProviderPreferencesKey = crate::PrimaryKey<u32, SoundProviderPreferences>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct SoundProviderPreferences {
     pub rows: Vec<SoundProviderPreferencesRow>,
 }
 
+impl SoundProviderPreferences {
+    pub const FILENAME: &'static str = "SoundProviderPreferences.dbc";
+    pub const FIELD_COUNT: usize = 24;
+    pub const ROW_SIZE: usize = 96;
+
+}
+
+impl Into<VanillaTable> for SoundProviderPreferences {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SoundProviderPreferences(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SoundProviderPreferences {
-    type Row = SoundProviderPreferencesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SoundProviderPreferences.dbc";
-    const FIELD_COUNT: usize = 24;
-    const ROW_SIZE: usize = 96;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SoundProviderPreferencesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SoundProviderPreferencesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -259,96 +274,16 @@ impl DbcTable for SoundProviderPreferences {
 
 }
 
-impl Indexable for SoundProviderPreferences {
-    type PrimaryKey = SoundProviderPreferencesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for SoundProviderPreferences {
+    type Table = Self;
+
+    fn get(&self, key: &SoundProviderPreferencesKey) -> Option<&SoundProviderPreferencesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SoundProviderPreferencesKey {
-    pub id: u32
-}
-
-impl SoundProviderPreferencesKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SoundProviderPreferencesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SoundProviderPreferencesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for SoundProviderPreferencesKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for SoundProviderPreferencesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SoundProviderPreferencesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for SoundProviderPreferencesKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for SoundProviderPreferencesKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for SoundProviderPreferencesKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SoundProviderPreferencesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SoundProviderPreferencesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SoundProviderPreferencesKey) -> Option<&mut SoundProviderPreferencesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -379,6 +314,9 @@ pub struct SoundProviderPreferencesRow {
     pub eax3_modulation_depth: f32,
     pub eax3_hf_reference: f32,
     pub eax3_lf_reference: f32,
+}
+
+impl DbcRow for SoundProviderPreferencesRow {
 }
 
 #[cfg(test)]

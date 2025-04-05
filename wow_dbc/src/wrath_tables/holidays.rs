@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::holiday_descriptions::HolidayDescriptionsKey;
-use crate::wrath_tables::holiday_names::HolidayNamesKey;
+use crate::wrath_tables::holiday_descriptions::{
+    HolidayDescriptions, HolidayDescriptionsKey,
+};
+use crate::wrath_tables::holiday_names::{
+    HolidayNames, HolidayNamesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type HolidaysKey = crate::PrimaryKey<i32, Holidays>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct Holidays {
     pub rows: Vec<HolidaysRow>,
 }
 
+impl Holidays {
+    pub const FILENAME: &'static str = "Holidays.dbc";
+    pub const FIELD_COUNT: usize = 55;
+    pub const ROW_SIZE: usize = 220;
+
+    pub fn verify(&self, holiday_descriptions: &HolidayDescriptions, holiday_names: &HolidayNames) -> Result<(), crate::InvalidForeignKeyError<&HolidaysRow>> {
+        for row in &self.rows {
+            if row.holiday_name_id.id != 0 && holiday_names.get(&row.holiday_name_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Holidays>(),
+                    row,
+                    id,
+                    row.holiday_name_id.id.into()
+                ));
+            }
+
+            if row.holiday_description_id.id != 0 && holiday_descriptions.get(&row.holiday_description_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Holidays>(),
+                    row,
+                    id,
+                    row.holiday_description_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Holidays {
+    fn into(self) -> WrathTable {
+        WrathTable::Holidays(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Holidays {
-    type Row = HolidaysRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Holidays.dbc";
-    const FIELD_COUNT: usize = 55;
-    const ROW_SIZE: usize = 220;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[HolidaysRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [HolidaysRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -186,94 +232,16 @@ impl DbcTable for Holidays {
 
 }
 
-impl Indexable for Holidays {
-    type PrimaryKey = HolidaysKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Holidays {
+    type Table = Self;
+
+    fn get(&self, key: &HolidaysKey) -> Option<&HolidaysRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct HolidaysKey {
-    pub id: i32
-}
-
-impl HolidaysKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for HolidaysKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for HolidaysKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for HolidaysKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for HolidaysKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for HolidaysKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for HolidaysKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for HolidaysKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for HolidaysKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for HolidaysKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for HolidaysKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &HolidaysKey) -> Option<&mut HolidaysRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -292,6 +260,9 @@ pub struct HolidaysRow {
     pub priority: i32,
     pub calendar_filter_type: i32,
     pub flags: i32,
+}
+
+impl DbcRow for HolidaysRow {
 }
 
 #[cfg(test)]

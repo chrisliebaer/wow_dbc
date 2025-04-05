@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::faction_template::FactionTemplateKey;
+use crate::tbc_tables::faction_template::{
+    FactionTemplate, FactionTemplateKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type SummonPropertiesKey = crate::PrimaryKey<i32, SummonProperties>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct SummonProperties {
     pub rows: Vec<SummonPropertiesRow>,
 }
 
+impl SummonProperties {
+    pub const FILENAME: &'static str = "SummonProperties.dbc";
+    pub const FIELD_COUNT: usize = 6;
+    pub const ROW_SIZE: usize = 24;
+
+    pub fn verify(&self, faction_template: &FactionTemplate) -> Result<(), crate::InvalidForeignKeyError<&SummonPropertiesRow>> {
+        for row in &self.rows {
+            if row.faction.id != 0 && faction_template.get(&row.faction).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SummonProperties>(),
+                    row,
+                    id,
+                    row.faction.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for SummonProperties {
+    fn into(self) -> TbcTable {
+        TbcTable::SummonProperties(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SummonProperties {
-    type Row = SummonPropertiesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SummonProperties.dbc";
-    const FIELD_COUNT: usize = 6;
-    const ROW_SIZE: usize = 24;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SummonPropertiesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SummonPropertiesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -129,94 +163,16 @@ impl DbcTable for SummonProperties {
 
 }
 
-impl Indexable for SummonProperties {
-    type PrimaryKey = SummonPropertiesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SummonProperties {
+    type Table = Self;
+
+    fn get(&self, key: &SummonPropertiesKey) -> Option<&SummonPropertiesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SummonPropertiesKey {
-    pub id: i32
-}
-
-impl SummonPropertiesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SummonPropertiesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SummonPropertiesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SummonPropertiesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SummonPropertiesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SummonPropertiesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SummonPropertiesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SummonPropertiesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SummonPropertiesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SummonPropertiesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SummonPropertiesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SummonPropertiesKey) -> Option<&mut SummonPropertiesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -229,6 +185,9 @@ pub struct SummonPropertiesRow {
     pub title: i32,
     pub slot: i32,
     pub flags: i32,
+}
+
+impl DbcRow for SummonPropertiesRow {
 }
 
 #[cfg(test)]

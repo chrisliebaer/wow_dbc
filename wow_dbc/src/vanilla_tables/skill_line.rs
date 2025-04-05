@@ -1,15 +1,24 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::vanilla_tables::skill_costs_data::SkillCostsDataKey;
-use crate::vanilla_tables::skill_line_category::SkillLineCategoryKey;
-use crate::vanilla_tables::spell_icon::SpellIconKey;
+use crate::vanilla_tables::skill_costs_data::{
+    SkillCostsData, SkillCostsDataKey,
+};
+use crate::vanilla_tables::skill_line_category::{
+    SkillLineCategory, SkillLineCategoryKey,
+};
+use crate::vanilla_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type SkillLineKey = crate::PrimaryKey<u32, SkillLine>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -17,15 +26,64 @@ pub struct SkillLine {
     pub rows: Vec<SkillLineRow>,
 }
 
+impl SkillLine {
+    pub const FILENAME: &'static str = "SkillLine.dbc";
+    pub const FIELD_COUNT: usize = 22;
+    pub const ROW_SIZE: usize = 88;
+
+    pub fn verify(&self, skill_costs_data: &SkillCostsData, skill_line_category: &SkillLineCategory, spell_icon: &SpellIcon) -> Result<(), crate::InvalidForeignKeyError<&SkillLineRow>> {
+        for row in &self.rows {
+            if row.category.id != 0 && skill_line_category.get(&row.category).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLine>(),
+                    row,
+                    id,
+                    row.category.id.into()
+                ));
+            }
+
+            if row.skill_costs.id != 0 && skill_costs_data.get(&row.skill_costs).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLine>(),
+                    row,
+                    id,
+                    row.skill_costs.id.into()
+                ));
+            }
+
+            if row.spell_icon.id != 0 && spell_icon.get(&row.spell_icon).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLine>(),
+                    row,
+                    id,
+                    row.spell_icon.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for SkillLine {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SkillLine(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SkillLine {
-    type Row = SkillLineRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SkillLine.dbc";
-    const FIELD_COUNT: usize = 22;
-    const ROW_SIZE: usize = 88;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SkillLineRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SkillLineRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -134,96 +192,16 @@ impl DbcTable for SkillLine {
 
 }
 
-impl Indexable for SkillLine {
-    type PrimaryKey = SkillLineKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for SkillLine {
+    type Table = Self;
+
+    fn get(&self, key: &SkillLineKey) -> Option<&SkillLineRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SkillLineKey {
-    pub id: u32
-}
-
-impl SkillLineKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SkillLineKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SkillLineKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for SkillLineKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for SkillLineKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SkillLineKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for SkillLineKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for SkillLineKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for SkillLineKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SkillLineKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SkillLineKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SkillLineKey) -> Option<&mut SkillLineRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -236,6 +214,9 @@ pub struct SkillLineRow {
     pub display_name: LocalizedString,
     pub description: LocalizedString,
     pub spell_icon: SpellIconKey,
+}
+
+impl DbcRow for SkillLineRow {
 }
 
 #[cfg(test)]

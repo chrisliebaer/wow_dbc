@@ -1,11 +1,18 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::chr_classes::ChrClassesKey;
-use crate::vanilla_tables::chr_races::ChrRacesKey;
+use crate::vanilla_tables::chr_classes::{
+    ChrClasses, ChrClassesKey,
+};
+use crate::vanilla_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::VanillaTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +20,54 @@ pub struct CharBaseInfo {
     pub rows: Vec<CharBaseInfoRow>,
 }
 
+impl CharBaseInfo {
+    pub const FILENAME: &'static str = "CharBaseInfo.dbc";
+    pub const FIELD_COUNT: usize = 2;
+    pub const ROW_SIZE: usize = 2;
+
+    pub fn verify(&self, chr_classes: &ChrClasses, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CharBaseInfoRow>> {
+        for row in &self.rows {
+            if row.race.id != 0 && chr_races.get(&row.race).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharBaseInfo>(),
+                    row,
+                    id,
+                    row.race.id.into()
+                ));
+            }
+
+            if row.class.id != 0 && chr_classes.get(&row.class).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharBaseInfo>(),
+                    row,
+                    id,
+                    row.class.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for CharBaseInfo {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharBaseInfo(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharBaseInfo {
-    type Row = CharBaseInfoRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharBaseInfo.dbc";
-    const FIELD_COUNT: usize = 2;
-    const ROW_SIZE: usize = 2;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharBaseInfoRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharBaseInfoRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -105,6 +151,9 @@ impl DbcTable for CharBaseInfo {
 pub struct CharBaseInfoRow {
     pub race: ChrRacesKey,
     pub class: ChrClassesKey,
+}
+
+impl DbcRow for CharBaseInfoRow {
 }
 
 #[cfg(test)]

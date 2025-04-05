@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type ZoneMusicKey = crate::PrimaryKey<i32, ZoneMusic>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct ZoneMusic {
     pub rows: Vec<ZoneMusicRow>,
 }
 
+impl ZoneMusic {
+    pub const FILENAME: &'static str = "ZoneMusic.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+}
+
+impl Into<WrathTable> for ZoneMusic {
+    fn into(self) -> WrathTable {
+        WrathTable::ZoneMusic(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for ZoneMusic {
-    type Row = ZoneMusicRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "ZoneMusic.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[ZoneMusicRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [ZoneMusicRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -135,94 +150,16 @@ impl DbcTable for ZoneMusic {
 
 }
 
-impl Indexable for ZoneMusic {
-    type PrimaryKey = ZoneMusicKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for ZoneMusic {
+    type Table = Self;
+
+    fn get(&self, key: &ZoneMusicKey) -> Option<&ZoneMusicRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ZoneMusicKey {
-    pub id: i32
-}
-
-impl ZoneMusicKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for ZoneMusicKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for ZoneMusicKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for ZoneMusicKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for ZoneMusicKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for ZoneMusicKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for ZoneMusicKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for ZoneMusicKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for ZoneMusicKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for ZoneMusicKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for ZoneMusicKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &ZoneMusicKey) -> Option<&mut ZoneMusicRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -234,6 +171,9 @@ pub struct ZoneMusicRow {
     pub silence_interval_min: [i32; 2],
     pub silence_interval_max: [i32; 2],
     pub sounds: [i32; 2],
+}
+
+impl DbcRow for ZoneMusicRow {
 }
 
 #[cfg(test)]

@@ -1,26 +1,55 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::area_group::AreaGroupKey;
-use crate::wrath_tables::faction::FactionKey;
-use crate::wrath_tables::power_display::PowerDisplayKey;
-use crate::wrath_tables::spell_cast_times::SpellCastTimesKey;
-use crate::wrath_tables::spell_category::SpellCategoryKey;
-use crate::wrath_tables::spell_description_variables::SpellDescriptionVariablesKey;
-use crate::wrath_tables::spell_dispel_type::SpellDispelTypeKey;
-use crate::wrath_tables::spell_duration::SpellDurationKey;
-use crate::wrath_tables::spell_focus_object::SpellFocusObjectKey;
-use crate::wrath_tables::spell_icon::SpellIconKey;
-use crate::wrath_tables::spell_mechanic::SpellMechanicKey;
-use crate::wrath_tables::spell_missile::SpellMissileKey;
-use crate::wrath_tables::spell_rune_cost::SpellRuneCostKey;
+use crate::wrath_tables::area_group::{
+    AreaGroup, AreaGroupKey,
+};
+use crate::wrath_tables::faction::{
+    Faction, FactionKey,
+};
+use crate::wrath_tables::power_display::{
+    PowerDisplay, PowerDisplayKey,
+};
+use crate::wrath_tables::spell_cast_times::{
+    SpellCastTimes, SpellCastTimesKey,
+};
+use crate::wrath_tables::spell_category::{
+    SpellCategory, SpellCategoryKey,
+};
+use crate::wrath_tables::spell_description_variables::{
+    SpellDescriptionVariables, SpellDescriptionVariablesKey,
+};
+use crate::wrath_tables::spell_dispel_type::{
+    SpellDispelType, SpellDispelTypeKey,
+};
+use crate::wrath_tables::spell_duration::{
+    SpellDuration, SpellDurationKey,
+};
+use crate::wrath_tables::spell_focus_object::{
+    SpellFocusObject, SpellFocusObjectKey,
+};
+use crate::wrath_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
+use crate::wrath_tables::spell_mechanic::{
+    SpellMechanic, SpellMechanicKey,
+};
+use crate::wrath_tables::spell_missile::{
+    SpellMissile, SpellMissileKey,
+};
+use crate::wrath_tables::spell_rune_cost::{
+    SpellRuneCost, SpellRuneCostKey,
+};
 use std::io::Write;
+use super::WrathTable;
 use wow_world_base::wrath::AuraMod;
+
+pub type SpellKey = crate::PrimaryKey<i32, Spell>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -28,15 +57,174 @@ pub struct Spell {
     pub rows: Vec<SpellRow>,
 }
 
+impl Spell {
+    pub const FILENAME: &'static str = "Spell.dbc";
+    pub const FIELD_COUNT: usize = 234;
+    pub const ROW_SIZE: usize = 936;
+
+    pub fn verify(&self, area_group: &AreaGroup, faction: &Faction, power_display: &PowerDisplay, spell_cast_times: &SpellCastTimes, spell_category: &SpellCategory, spell_description_variables: &SpellDescriptionVariables, spell_dispel_type: &SpellDispelType, spell_duration: &SpellDuration, spell_focus_object: &SpellFocusObject, spell_icon: &SpellIcon, spell_mechanic: &SpellMechanic, spell_missile: &SpellMissile, spell_rune_cost: &SpellRuneCost) -> Result<(), crate::InvalidForeignKeyError<&SpellRow>> {
+        for row in &self.rows {
+            if row.category.id != 0 && spell_category.get(&row.category).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.category.id.into()
+                ));
+            }
+
+            if row.dispel_type.id != 0 && spell_dispel_type.get(&row.dispel_type).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.dispel_type.id.into()
+                ));
+            }
+
+            if row.mechanic.id != 0 && spell_mechanic.get(&row.mechanic).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.mechanic.id.into()
+                ));
+            }
+
+            if row.requires_spell_focus.id != 0 && spell_focus_object.get(&row.requires_spell_focus).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.requires_spell_focus.id.into()
+                ));
+            }
+
+            if row.casting_time_index.id != 0 && spell_cast_times.get(&row.casting_time_index).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.casting_time_index.id.into()
+                ));
+            }
+
+            if row.duration_index.id != 0 && spell_duration.get(&row.duration_index).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.duration_index.id.into()
+                ));
+            }
+
+            if row.spell_icon_id.id != 0 && spell_icon.get(&row.spell_icon_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.spell_icon_id.id.into()
+                ));
+            }
+
+            if row.active_icon_id.id != 0 && spell_icon.get(&row.active_icon_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.active_icon_id.id.into()
+                ));
+            }
+
+            if row.min_faction_id.id != 0 && faction.get(&row.min_faction_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.min_faction_id.id.into()
+                ));
+            }
+
+            if row.required_areas_id.id != 0 && area_group.get(&row.required_areas_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.required_areas_id.id.into()
+                ));
+            }
+
+            if row.rune_cost_id.id != 0 && spell_rune_cost.get(&row.rune_cost_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.rune_cost_id.id.into()
+                ));
+            }
+
+            if row.spell_missile_id.id != 0 && spell_missile.get(&row.spell_missile_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.spell_missile_id.id.into()
+                ));
+            }
+
+            if row.power_display_id.id != 0 && power_display.get(&row.power_display_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.power_display_id.id.into()
+                ));
+            }
+
+            if row.description_variables_id.id != 0 && spell_description_variables.get(&row.description_variables_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Spell>(),
+                    row,
+                    id,
+                    row.description_variables_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Spell {
+    fn into(self) -> WrathTable {
+        WrathTable::Spell(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Spell {
-    type Row = SpellRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Spell.dbc";
-    const FIELD_COUNT: usize = 234;
-    const ROW_SIZE: usize = 936;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -935,94 +1123,16 @@ impl DbcTable for Spell {
 
 }
 
-impl Indexable for Spell {
-    type PrimaryKey = SpellKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Spell {
+    type Table = Self;
+
+    fn get(&self, key: &SpellKey) -> Option<&SpellRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellKey {
-    pub id: i32
-}
-
-impl SpellKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SpellKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SpellKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SpellKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SpellKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SpellKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellKey) -> Option<&mut SpellRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -1134,6 +1244,9 @@ pub struct SpellRow {
     pub effect_bonus_coefficient: [f32; 3],
     pub description_variables_id: SpellDescriptionVariablesKey,
     pub difficulty: i32,
+}
+
+impl DbcRow for SpellRow {
 }
 
 #[cfg(test)]

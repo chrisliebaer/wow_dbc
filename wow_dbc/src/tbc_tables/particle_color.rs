@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type ParticleColorKey = crate::PrimaryKey<i32, ParticleColor>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct ParticleColor {
     pub rows: Vec<ParticleColorRow>,
 }
 
+impl ParticleColor {
+    pub const FILENAME: &'static str = "ParticleColor.dbc";
+    pub const FIELD_COUNT: usize = 10;
+    pub const ROW_SIZE: usize = 40;
+
+}
+
+impl Into<TbcTable> for ParticleColor {
+    fn into(self) -> TbcTable {
+        TbcTable::ParticleColor(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for ParticleColor {
-    type Row = ParticleColorRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "ParticleColor.dbc";
-    const FIELD_COUNT: usize = 10;
-    const ROW_SIZE: usize = 40;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[ParticleColorRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [ParticleColorRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -123,94 +138,16 @@ impl DbcTable for ParticleColor {
 
 }
 
-impl Indexable for ParticleColor {
-    type PrimaryKey = ParticleColorKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for ParticleColor {
+    type Table = Self;
+
+    fn get(&self, key: &ParticleColorKey) -> Option<&ParticleColorRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ParticleColorKey {
-    pub id: i32
-}
-
-impl ParticleColorKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for ParticleColorKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for ParticleColorKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for ParticleColorKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for ParticleColorKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for ParticleColorKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for ParticleColorKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for ParticleColorKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for ParticleColorKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for ParticleColorKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for ParticleColorKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &ParticleColorKey) -> Option<&mut ParticleColorRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -221,6 +158,9 @@ pub struct ParticleColorRow {
     pub start: [i32; 3],
     pub m_id: [i32; 3],
     pub end: [i32; 3],
+}
+
+impl DbcRow for ParticleColorRow {
 }
 
 #[cfg(test)]

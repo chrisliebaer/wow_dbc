@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, LocalizedString,
+    DbcRow, DbcTable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,7 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::{
     ServerCategory, ServerRegion,
 };
@@ -18,15 +19,27 @@ pub struct Cfg_Categories {
     pub rows: Vec<Cfg_CategoriesRow>,
 }
 
+impl Cfg_Categories {
+    pub const FILENAME: &'static str = "Cfg_Categories.dbc";
+    pub const FIELD_COUNT: usize = 11;
+    pub const ROW_SIZE: usize = 44;
+
+}
+
+impl Into<VanillaTable> for Cfg_Categories {
+    fn into(self) -> VanillaTable {
+        VanillaTable::Cfg_Categories(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Cfg_Categories {
-    type Row = Cfg_CategoriesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Cfg_Categories.dbc";
-    const FIELD_COUNT: usize = 11;
-    const ROW_SIZE: usize = 44;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[Cfg_CategoriesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [Cfg_CategoriesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -121,6 +134,9 @@ pub struct Cfg_CategoriesRow {
     pub category: ServerCategory,
     pub region: ServerRegion,
     pub name: LocalizedString,
+}
+
+impl DbcRow for Cfg_CategoriesRow {
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,9 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
+
+pub type SpellDispelTypeKey = crate::PrimaryKey<u32, SpellDispelType>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +17,27 @@ pub struct SpellDispelType {
     pub rows: Vec<SpellDispelTypeRow>,
 }
 
+impl SpellDispelType {
+    pub const FILENAME: &'static str = "SpellDispelType.dbc";
+    pub const FIELD_COUNT: usize = 12;
+    pub const ROW_SIZE: usize = 48;
+
+}
+
+impl Into<VanillaTable> for SpellDispelType {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellDispelType(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellDispelType {
-    type Row = SpellDispelTypeRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellDispelType.dbc";
-    const FIELD_COUNT: usize = 12;
-    const ROW_SIZE: usize = 48;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellDispelTypeRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellDispelTypeRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -117,96 +132,16 @@ impl DbcTable for SpellDispelType {
 
 }
 
-impl Indexable for SpellDispelType {
-    type PrimaryKey = SpellDispelTypeKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for SpellDispelType {
+    type Table = Self;
+
+    fn get(&self, key: &SpellDispelTypeKey) -> Option<&SpellDispelTypeRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellDispelTypeKey {
-    pub id: u32
-}
-
-impl SpellDispelTypeKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellDispelTypeKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellDispelTypeKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for SpellDispelTypeKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for SpellDispelTypeKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellDispelTypeKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for SpellDispelTypeKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for SpellDispelTypeKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for SpellDispelTypeKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellDispelTypeKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellDispelTypeKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellDispelTypeKey) -> Option<&mut SpellDispelTypeRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -217,6 +152,9 @@ pub struct SpellDispelTypeRow {
     pub name: LocalizedString,
     pub mask: i32,
     pub immunity_possible: u32,
+}
+
+impl DbcRow for SpellDispelTypeRow {
 }
 
 #[cfg(test)]

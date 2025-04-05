@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::skill_line::SkillLineKey;
-use crate::tbc_tables::spell::SpellKey;
+use crate::tbc_tables::skill_line::{
+    SkillLine, SkillLineKey,
+};
+use crate::tbc_tables::spell::{
+    Spell, SpellKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type SkillLineAbilityKey = crate::PrimaryKey<i32, SkillLineAbility>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,64 @@ pub struct SkillLineAbility {
     pub rows: Vec<SkillLineAbilityRow>,
 }
 
+impl SkillLineAbility {
+    pub const FILENAME: &'static str = "SkillLineAbility.dbc";
+    pub const FIELD_COUNT: usize = 15;
+    pub const ROW_SIZE: usize = 60;
+
+    pub fn verify(&self, skill_line: &SkillLine, spell: &Spell) -> Result<(), crate::InvalidForeignKeyError<&SkillLineAbilityRow>> {
+        for row in &self.rows {
+            if row.skill_line.id != 0 && skill_line.get(&row.skill_line).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLineAbility>(),
+                    row,
+                    id,
+                    row.skill_line.id.into()
+                ));
+            }
+
+            if row.spell.id != 0 && spell.get(&row.spell).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLineAbility>(),
+                    row,
+                    id,
+                    row.spell.id.into()
+                ));
+            }
+
+            if row.superceded_by_spell.id != 0 && spell.get(&row.superceded_by_spell).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillLineAbility>(),
+                    row,
+                    id,
+                    row.superceded_by_spell.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for SkillLineAbility {
+    fn into(self) -> TbcTable {
+        TbcTable::SkillLineAbility(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SkillLineAbility {
-    type Row = SkillLineAbilityRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SkillLineAbility.dbc";
-    const FIELD_COUNT: usize = 15;
-    const ROW_SIZE: usize = 60;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SkillLineAbilityRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SkillLineAbilityRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -189,94 +245,16 @@ impl DbcTable for SkillLineAbility {
 
 }
 
-impl Indexable for SkillLineAbility {
-    type PrimaryKey = SkillLineAbilityKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SkillLineAbility {
+    type Table = Self;
+
+    fn get(&self, key: &SkillLineAbilityKey) -> Option<&SkillLineAbilityRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SkillLineAbilityKey {
-    pub id: i32
-}
-
-impl SkillLineAbilityKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SkillLineAbilityKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SkillLineAbilityKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SkillLineAbilityKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SkillLineAbilityKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SkillLineAbilityKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SkillLineAbilityKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SkillLineAbilityKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SkillLineAbilityKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SkillLineAbilityKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SkillLineAbilityKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SkillLineAbilityKey) -> Option<&mut SkillLineAbilityRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -297,6 +275,9 @@ pub struct SkillLineAbilityRow {
     pub trivial_skill_line_rank_low: i32,
     pub abandonable: i32,
     pub character_points: [i32; 2],
+}
+
+impl DbcRow for SkillLineAbilityRow {
 }
 
 #[cfg(test)]

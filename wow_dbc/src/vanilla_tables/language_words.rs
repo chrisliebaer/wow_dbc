@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::languages::LanguagesKey;
+use crate::vanilla_tables::languages::{
+    Languages, LanguagesKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type LanguageWordsKey = crate::PrimaryKey<u32, LanguageWords>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct LanguageWords {
     pub rows: Vec<LanguageWordsRow>,
 }
 
+impl LanguageWords {
+    pub const FILENAME: &'static str = "LanguageWords.dbc";
+    pub const FIELD_COUNT: usize = 3;
+    pub const ROW_SIZE: usize = 12;
+
+    pub fn verify(&self, languages: &Languages) -> Result<(), crate::InvalidForeignKeyError<&LanguageWordsRow>> {
+        for row in &self.rows {
+            if row.language.id != 0 && languages.get(&row.language).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<LanguageWords>(),
+                    row,
+                    id,
+                    row.language.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for LanguageWords {
+    fn into(self) -> VanillaTable {
+        VanillaTable::LanguageWords(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for LanguageWords {
-    type Row = LanguageWordsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "LanguageWords.dbc";
-    const FIELD_COUNT: usize = 3;
-    const ROW_SIZE: usize = 12;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[LanguageWordsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [LanguageWordsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -113,96 +147,16 @@ impl DbcTable for LanguageWords {
 
 }
 
-impl Indexable for LanguageWords {
-    type PrimaryKey = LanguageWordsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for LanguageWords {
+    type Table = Self;
+
+    fn get(&self, key: &LanguageWordsKey) -> Option<&LanguageWordsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct LanguageWordsKey {
-    pub id: u32
-}
-
-impl LanguageWordsKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for LanguageWordsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for LanguageWordsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for LanguageWordsKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for LanguageWordsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for LanguageWordsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for LanguageWordsKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for LanguageWordsKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for LanguageWordsKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for LanguageWordsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for LanguageWordsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &LanguageWordsKey) -> Option<&mut LanguageWordsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -212,6 +166,9 @@ pub struct LanguageWordsRow {
     pub id: LanguageWordsKey,
     pub language: LanguagesKey,
     pub word: String,
+}
+
+impl DbcRow for LanguageWordsRow {
 }
 
 #[cfg(test)]

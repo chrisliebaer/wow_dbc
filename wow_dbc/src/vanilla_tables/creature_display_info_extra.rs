@@ -1,13 +1,18 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::chr_races::ChrRacesKey;
+use crate::vanilla_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::Gender;
+
+pub type CreatureDisplayInfoExtraKey = crate::PrimaryKey<u32, CreatureDisplayInfoExtra>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +20,44 @@ pub struct CreatureDisplayInfoExtra {
     pub rows: Vec<CreatureDisplayInfoExtraRow>,
 }
 
+impl CreatureDisplayInfoExtra {
+    pub const FILENAME: &'static str = "CreatureDisplayInfoExtra.dbc";
+    pub const FIELD_COUNT: usize = 19;
+    pub const ROW_SIZE: usize = 76;
+
+    pub fn verify(&self, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CreatureDisplayInfoExtraRow>> {
+        for row in &self.rows {
+            if row.display_race.id != 0 && chr_races.get(&row.display_race).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfoExtra>(),
+                    row,
+                    id,
+                    row.display_race.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for CreatureDisplayInfoExtra {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CreatureDisplayInfoExtra(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CreatureDisplayInfoExtra {
-    type Row = CreatureDisplayInfoExtraRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CreatureDisplayInfoExtra.dbc";
-    const FIELD_COUNT: usize = 19;
-    const ROW_SIZE: usize = 76;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CreatureDisplayInfoExtraRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CreatureDisplayInfoExtraRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -173,96 +207,16 @@ impl DbcTable for CreatureDisplayInfoExtra {
 
 }
 
-impl Indexable for CreatureDisplayInfoExtra {
-    type PrimaryKey = CreatureDisplayInfoExtraKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for CreatureDisplayInfoExtra {
+    type Table = Self;
+
+    fn get(&self, key: &CreatureDisplayInfoExtraKey) -> Option<&CreatureDisplayInfoExtraRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CreatureDisplayInfoExtraKey {
-    pub id: u32
-}
-
-impl CreatureDisplayInfoExtraKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CreatureDisplayInfoExtraKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CreatureDisplayInfoExtraKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for CreatureDisplayInfoExtraKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for CreatureDisplayInfoExtraKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CreatureDisplayInfoExtraKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for CreatureDisplayInfoExtraKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for CreatureDisplayInfoExtraKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for CreatureDisplayInfoExtraKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CreatureDisplayInfoExtraKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CreatureDisplayInfoExtraKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CreatureDisplayInfoExtraKey) -> Option<&mut CreatureDisplayInfoExtraRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -280,6 +234,9 @@ pub struct CreatureDisplayInfoExtraRow {
     pub npc_item_display: [u32; 9],
     pub flags: i32,
     pub bake_name: String,
+}
+
+impl DbcRow for CreatureDisplayInfoExtraRow {
 }
 
 #[cfg(test)]

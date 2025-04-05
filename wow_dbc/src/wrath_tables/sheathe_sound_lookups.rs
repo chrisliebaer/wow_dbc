@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::material::MaterialKey;
+use crate::wrath_tables::material::{
+    Material, MaterialKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type SheatheSoundLookupsKey = crate::PrimaryKey<i32, SheatheSoundLookups>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct SheatheSoundLookups {
     pub rows: Vec<SheatheSoundLookupsRow>,
 }
 
+impl SheatheSoundLookups {
+    pub const FILENAME: &'static str = "SheatheSoundLookups.dbc";
+    pub const FIELD_COUNT: usize = 7;
+    pub const ROW_SIZE: usize = 28;
+
+    pub fn verify(&self, material: &Material) -> Result<(), crate::InvalidForeignKeyError<&SheatheSoundLookupsRow>> {
+        for row in &self.rows {
+            if row.material.id != 0 && material.get(&row.material).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SheatheSoundLookups>(),
+                    row,
+                    id,
+                    row.material.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for SheatheSoundLookups {
+    fn into(self) -> WrathTable {
+        WrathTable::SheatheSoundLookups(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SheatheSoundLookups {
-    type Row = SheatheSoundLookupsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SheatheSoundLookups.dbc";
-    const FIELD_COUNT: usize = 7;
-    const ROW_SIZE: usize = 28;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SheatheSoundLookupsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SheatheSoundLookupsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -136,94 +170,16 @@ impl DbcTable for SheatheSoundLookups {
 
 }
 
-impl Indexable for SheatheSoundLookups {
-    type PrimaryKey = SheatheSoundLookupsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SheatheSoundLookups {
+    type Table = Self;
+
+    fn get(&self, key: &SheatheSoundLookupsKey) -> Option<&SheatheSoundLookupsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SheatheSoundLookupsKey {
-    pub id: i32
-}
-
-impl SheatheSoundLookupsKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SheatheSoundLookupsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SheatheSoundLookupsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SheatheSoundLookupsKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SheatheSoundLookupsKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SheatheSoundLookupsKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SheatheSoundLookupsKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SheatheSoundLookupsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SheatheSoundLookupsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SheatheSoundLookupsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SheatheSoundLookupsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SheatheSoundLookupsKey) -> Option<&mut SheatheSoundLookupsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -237,6 +193,9 @@ pub struct SheatheSoundLookupsRow {
     pub check_material: i32,
     pub sheathe_sound: i32,
     pub unsheathe_sound: i32,
+}
+
+impl DbcRow for SheatheSoundLookupsRow {
 }
 
 #[cfg(test)]

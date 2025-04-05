@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct gtBarberShopCostBase {
     pub rows: Vec<gtBarberShopCostBaseRow>,
 }
 
+impl gtBarberShopCostBase {
+    pub const FILENAME: &'static str = "gtBarberShopCostBase.dbc";
+    pub const FIELD_COUNT: usize = 1;
+    pub const ROW_SIZE: usize = 4;
+
+}
+
+impl Into<WrathTable> for gtBarberShopCostBase {
+    fn into(self) -> WrathTable {
+        WrathTable::gtBarberShopCostBase(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for gtBarberShopCostBase {
-    type Row = gtBarberShopCostBaseRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "gtBarberShopCostBase.dbc";
-    const FIELD_COUNT: usize = 1;
-    const ROW_SIZE: usize = 4;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[gtBarberShopCostBaseRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [gtBarberShopCostBaseRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -95,6 +110,9 @@ impl DbcTable for gtBarberShopCostBase {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtBarberShopCostBaseRow {
     pub data: f32,
+}
+
+impl DbcRow for gtBarberShopCostBaseRow {
 }
 
 #[cfg(test)]

@@ -1,10 +1,15 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::chr_races::ChrRacesKey;
+use crate::wrath_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -12,15 +17,44 @@ pub struct CharVariations {
     pub rows: Vec<CharVariationsRow>,
 }
 
+impl CharVariations {
+    pub const FILENAME: &'static str = "CharVariations.dbc";
+    pub const FIELD_COUNT: usize = 6;
+    pub const ROW_SIZE: usize = 24;
+
+    pub fn verify(&self, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CharVariationsRow>> {
+        for row in &self.rows {
+            if row.race_id.id != 0 && chr_races.get(&row.race_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharVariations>(),
+                    row,
+                    id,
+                    row.race_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for CharVariations {
+    fn into(self) -> WrathTable {
+        WrathTable::CharVariations(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharVariations {
-    type Row = CharVariationsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharVariations.dbc";
-    const FIELD_COUNT: usize = 6;
-    const ROW_SIZE: usize = 24;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharVariationsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharVariationsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -115,5 +149,8 @@ pub struct CharVariationsRow {
     pub race_id: ChrRacesKey,
     pub sex_id: i32,
     pub texture_hold_layer: [i32; 4],
+}
+
+impl DbcRow for CharVariationsRow {
 }
 

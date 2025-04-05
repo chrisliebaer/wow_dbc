@@ -1,14 +1,21 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::area_table::AreaTableKey;
-use crate::wrath_tables::loading_screens::LoadingScreensKey;
+use crate::wrath_tables::area_table::{
+    AreaTable, AreaTableKey,
+};
+use crate::wrath_tables::loading_screens::{
+    LoadingScreens, LoadingScreensKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type MapKey = crate::PrimaryKey<i32, Map>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +23,64 @@ pub struct Map {
     pub rows: Vec<MapRow>,
 }
 
+impl Map {
+    pub const FILENAME: &'static str = "Map.dbc";
+    pub const FIELD_COUNT: usize = 66;
+    pub const ROW_SIZE: usize = 264;
+
+    pub fn verify(&self, area_table: &AreaTable, loading_screens: &LoadingScreens) -> Result<(), crate::InvalidForeignKeyError<&MapRow>> {
+        for row in &self.rows {
+            if row.area_table_id.id != 0 && area_table.get(&row.area_table_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Map>(),
+                    row,
+                    id,
+                    row.area_table_id.id.into()
+                ));
+            }
+
+            if row.loading_screen_id.id != 0 && loading_screens.get(&row.loading_screen_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Map>(),
+                    row,
+                    id,
+                    row.loading_screen_id.id.into()
+                ));
+            }
+
+            if row.corpse_map_id.id != 0 && self.get(&row.corpse_map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Map>(),
+                    row,
+                    id,
+                    row.corpse_map_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Map {
+    fn into(self) -> WrathTable {
+        WrathTable::Map(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Map {
-    type Row = MapRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Map.dbc";
-    const FIELD_COUNT: usize = 66;
-    const ROW_SIZE: usize = 264;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[MapRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [MapRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -216,94 +272,16 @@ impl DbcTable for Map {
 
 }
 
-impl Indexable for Map {
-    type PrimaryKey = MapKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Map {
+    type Table = Self;
+
+    fn get(&self, key: &MapKey) -> Option<&MapRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct MapKey {
-    pub id: i32
-}
-
-impl MapKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for MapKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for MapKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for MapKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for MapKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for MapKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for MapKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for MapKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for MapKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for MapKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for MapKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &MapKey) -> Option<&mut MapRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -327,6 +305,9 @@ pub struct MapRow {
     pub expansion_id: i32,
     pub raid_offset: i32,
     pub max_players: i32,
+}
+
+impl DbcRow for MapRow {
 }
 
 #[cfg(test)]

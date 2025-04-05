@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type GameObjectArtKitKey = crate::PrimaryKey<i32, GameObjectArtKit>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct GameObjectArtKit {
     pub rows: Vec<GameObjectArtKitRow>,
 }
 
+impl GameObjectArtKit {
+    pub const FILENAME: &'static str = "GameObjectArtKit.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+}
+
+impl Into<TbcTable> for GameObjectArtKit {
+    fn into(self) -> TbcTable {
+        TbcTable::GameObjectArtKit(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for GameObjectArtKit {
-    type Row = GameObjectArtKitRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "GameObjectArtKit.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[GameObjectArtKitRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [GameObjectArtKitRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -137,94 +152,16 @@ impl DbcTable for GameObjectArtKit {
 
 }
 
-impl Indexable for GameObjectArtKit {
-    type PrimaryKey = GameObjectArtKitKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for GameObjectArtKit {
+    type Table = Self;
+
+    fn get(&self, key: &GameObjectArtKitKey) -> Option<&GameObjectArtKitRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GameObjectArtKitKey {
-    pub id: i32
-}
-
-impl GameObjectArtKitKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for GameObjectArtKitKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for GameObjectArtKitKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for GameObjectArtKitKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for GameObjectArtKitKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for GameObjectArtKitKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for GameObjectArtKitKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for GameObjectArtKitKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for GameObjectArtKitKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for GameObjectArtKitKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for GameObjectArtKitKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &GameObjectArtKitKey) -> Option<&mut GameObjectArtKitRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -234,6 +171,9 @@ pub struct GameObjectArtKitRow {
     pub id: GameObjectArtKitKey,
     pub texture_variation: [String; 3],
     pub attach_model: [String; 4],
+}
+
+impl DbcRow for GameObjectArtKitRow {
 }
 
 #[cfg(test)]

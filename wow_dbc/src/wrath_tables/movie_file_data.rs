@@ -1,10 +1,15 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::file_data::FileDataKey;
+use crate::wrath_tables::file_data::{
+    FileData, FileDataKey,
+};
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -12,15 +17,44 @@ pub struct MovieFileData {
     pub rows: Vec<MovieFileDataRow>,
 }
 
+impl MovieFileData {
+    pub const FILENAME: &'static str = "MovieFileData.dbc";
+    pub const FIELD_COUNT: usize = 2;
+    pub const ROW_SIZE: usize = 8;
+
+    pub fn verify(&self, file_data: &FileData) -> Result<(), crate::InvalidForeignKeyError<&MovieFileDataRow>> {
+        for row in &self.rows {
+            if row.file_data_id.id != 0 && file_data.get(&row.file_data_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<MovieFileData>(),
+                    row,
+                    id,
+                    row.file_data_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for MovieFileData {
+    fn into(self) -> WrathTable {
+        WrathTable::MovieFileData(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for MovieFileData {
-    type Row = MovieFileDataRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "MovieFileData.dbc";
-    const FIELD_COUNT: usize = 2;
-    const ROW_SIZE: usize = 8;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[MovieFileDataRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [MovieFileDataRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -104,6 +138,9 @@ impl DbcTable for MovieFileData {
 pub struct MovieFileDataRow {
     pub file_data_id: FileDataKey,
     pub resolution: i32,
+}
+
+impl DbcRow for MovieFileDataRow {
 }
 
 #[cfg(test)]

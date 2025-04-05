@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type SpellCastTimesKey = crate::PrimaryKey<i32, SpellCastTimes>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct SpellCastTimes {
     pub rows: Vec<SpellCastTimesRow>,
 }
 
+impl SpellCastTimes {
+    pub const FILENAME: &'static str = "SpellCastTimes.dbc";
+    pub const FIELD_COUNT: usize = 4;
+    pub const ROW_SIZE: usize = 16;
+
+}
+
+impl Into<WrathTable> for SpellCastTimes {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellCastTimes(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellCastTimes {
-    type Row = SpellCastTimesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellCastTimes.dbc";
-    const FIELD_COUNT: usize = 4;
-    const ROW_SIZE: usize = 16;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellCastTimesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellCastTimesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -114,94 +129,16 @@ impl DbcTable for SpellCastTimes {
 
 }
 
-impl Indexable for SpellCastTimes {
-    type PrimaryKey = SpellCastTimesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SpellCastTimes {
+    type Table = Self;
+
+    fn get(&self, key: &SpellCastTimesKey) -> Option<&SpellCastTimesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellCastTimesKey {
-    pub id: i32
-}
-
-impl SpellCastTimesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellCastTimesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellCastTimesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SpellCastTimesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SpellCastTimesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SpellCastTimesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SpellCastTimesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellCastTimesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SpellCastTimesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellCastTimesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellCastTimesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellCastTimesKey) -> Option<&mut SpellCastTimesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -212,6 +149,9 @@ pub struct SpellCastTimesRow {
     pub base: i32,
     pub per_level: i32,
     pub minimum: i32,
+}
+
+impl DbcRow for SpellCastTimesRow {
 }
 
 #[cfg(test)]

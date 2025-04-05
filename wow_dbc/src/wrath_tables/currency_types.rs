@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::currency_category::CurrencyCategoryKey;
-use crate::wrath_tables::item::ItemKey;
+use crate::wrath_tables::currency_category::{
+    CurrencyCategory, CurrencyCategoryKey,
+};
+use crate::wrath_tables::item::{
+    Item, ItemKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type CurrencyTypesKey = crate::PrimaryKey<i32, CurrencyTypes>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct CurrencyTypes {
     pub rows: Vec<CurrencyTypesRow>,
 }
 
+impl CurrencyTypes {
+    pub const FILENAME: &'static str = "CurrencyTypes.dbc";
+    pub const FIELD_COUNT: usize = 4;
+    pub const ROW_SIZE: usize = 16;
+
+    pub fn verify(&self, currency_category: &CurrencyCategory, item: &Item) -> Result<(), crate::InvalidForeignKeyError<&CurrencyTypesRow>> {
+        for row in &self.rows {
+            if row.item_id.id != 0 && item.get(&row.item_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CurrencyTypes>(),
+                    row,
+                    id,
+                    row.item_id.id.into()
+                ));
+            }
+
+            if row.category_id.id != 0 && currency_category.get(&row.category_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CurrencyTypes>(),
+                    row,
+                    id,
+                    row.category_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for CurrencyTypes {
+    fn into(self) -> WrathTable {
+        WrathTable::CurrencyTypes(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CurrencyTypes {
-    type Row = CurrencyTypesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CurrencyTypes.dbc";
-    const FIELD_COUNT: usize = 4;
-    const ROW_SIZE: usize = 16;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CurrencyTypesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CurrencyTypesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -116,94 +162,16 @@ impl DbcTable for CurrencyTypes {
 
 }
 
-impl Indexable for CurrencyTypes {
-    type PrimaryKey = CurrencyTypesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for CurrencyTypes {
+    type Table = Self;
+
+    fn get(&self, key: &CurrencyTypesKey) -> Option<&CurrencyTypesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CurrencyTypesKey {
-    pub id: i32
-}
-
-impl CurrencyTypesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CurrencyTypesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CurrencyTypesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for CurrencyTypesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for CurrencyTypesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for CurrencyTypesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for CurrencyTypesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CurrencyTypesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for CurrencyTypesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CurrencyTypesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CurrencyTypesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CurrencyTypesKey) -> Option<&mut CurrencyTypesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -214,6 +182,9 @@ pub struct CurrencyTypesRow {
     pub item_id: ItemKey,
     pub category_id: CurrencyCategoryKey,
     pub bit_index: i32,
+}
+
+impl DbcRow for CurrencyTypesRow {
 }
 
 #[cfg(test)]

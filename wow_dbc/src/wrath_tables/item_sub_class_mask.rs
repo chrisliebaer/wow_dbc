@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString,
+    DbcRow, DbcTable, ExtendedLocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,7 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +15,27 @@ pub struct ItemSubClassMask {
     pub rows: Vec<ItemSubClassMaskRow>,
 }
 
+impl ItemSubClassMask {
+    pub const FILENAME: &'static str = "ItemSubClassMask.dbc";
+    pub const FIELD_COUNT: usize = 19;
+    pub const ROW_SIZE: usize = 76;
+
+}
+
+impl Into<WrathTable> for ItemSubClassMask {
+    fn into(self) -> WrathTable {
+        WrathTable::ItemSubClassMask(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for ItemSubClassMask {
-    type Row = ItemSubClassMaskRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "ItemSubClassMask.dbc";
-    const FIELD_COUNT: usize = 19;
-    const ROW_SIZE: usize = 76;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[ItemSubClassMaskRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [ItemSubClassMaskRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -116,6 +129,9 @@ pub struct ItemSubClassMaskRow {
     pub class_id: i32,
     pub mask: i32,
     pub name_lang: ExtendedLocalizedString,
+}
+
+impl DbcRow for ItemSubClassMaskRow {
 }
 
 #[cfg(test)]

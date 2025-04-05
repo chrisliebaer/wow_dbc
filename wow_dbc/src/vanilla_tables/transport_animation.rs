@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::animation_data::AnimationDataKey;
+use crate::vanilla_tables::animation_data::{
+    AnimationData, AnimationDataKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type TransportAnimationKey = crate::PrimaryKey<u32, TransportAnimation>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct TransportAnimation {
     pub rows: Vec<TransportAnimationRow>,
 }
 
+impl TransportAnimation {
+    pub const FILENAME: &'static str = "TransportAnimation.dbc";
+    pub const FIELD_COUNT: usize = 7;
+    pub const ROW_SIZE: usize = 28;
+
+    pub fn verify(&self, animation_data: &AnimationData) -> Result<(), crate::InvalidForeignKeyError<&TransportAnimationRow>> {
+        for row in &self.rows {
+            if row.sequence.id != 0 && animation_data.get(&row.sequence).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<TransportAnimation>(),
+                    row,
+                    id,
+                    row.sequence.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for TransportAnimation {
+    fn into(self) -> VanillaTable {
+        VanillaTable::TransportAnimation(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for TransportAnimation {
-    type Row = TransportAnimationRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "TransportAnimation.dbc";
-    const FIELD_COUNT: usize = 7;
-    const ROW_SIZE: usize = 28;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[TransportAnimationRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [TransportAnimationRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -136,96 +170,16 @@ impl DbcTable for TransportAnimation {
 
 }
 
-impl Indexable for TransportAnimation {
-    type PrimaryKey = TransportAnimationKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for TransportAnimation {
+    type Table = Self;
+
+    fn get(&self, key: &TransportAnimationKey) -> Option<&TransportAnimationRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct TransportAnimationKey {
-    pub id: u32
-}
-
-impl TransportAnimationKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for TransportAnimationKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for TransportAnimationKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for TransportAnimationKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for TransportAnimationKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for TransportAnimationKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for TransportAnimationKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for TransportAnimationKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for TransportAnimationKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for TransportAnimationKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for TransportAnimationKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &TransportAnimationKey) -> Option<&mut TransportAnimationRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -239,6 +193,9 @@ pub struct TransportAnimationRow {
     pub location_y: f32,
     pub location_z: f32,
     pub sequence: AnimationDataKey,
+}
+
+impl DbcRow for TransportAnimationRow {
 }
 
 #[cfg(test)]

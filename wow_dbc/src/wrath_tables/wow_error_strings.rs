@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,9 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type WowError_StringsKey = crate::PrimaryKey<i32, WowError_Strings>;
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -15,15 +18,27 @@ pub struct WowError_Strings {
     pub rows: Vec<WowError_StringsRow>,
 }
 
+impl WowError_Strings {
+    pub const FILENAME: &'static str = "WowError_Strings.dbc";
+    pub const FIELD_COUNT: usize = 19;
+    pub const ROW_SIZE: usize = 76;
+
+}
+
+impl Into<WrathTable> for WowError_Strings {
+    fn into(self) -> WrathTable {
+        WrathTable::WowError_Strings(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for WowError_Strings {
-    type Row = WowError_StringsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "WowError_Strings.dbc";
-    const FIELD_COUNT: usize = 19;
-    const ROW_SIZE: usize = 76;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[WowError_StringsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [WowError_StringsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -114,95 +129,16 @@ impl DbcTable for WowError_Strings {
 
 }
 
-impl Indexable for WowError_Strings {
-    type PrimaryKey = WowError_StringsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for WowError_Strings {
+    type Table = Self;
+
+    fn get(&self, key: &WowError_StringsKey) -> Option<&WowError_StringsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WowError_StringsKey {
-    pub id: i32
-}
-
-impl WowError_StringsKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for WowError_StringsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for WowError_StringsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for WowError_StringsKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for WowError_StringsKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for WowError_StringsKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for WowError_StringsKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for WowError_StringsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for WowError_StringsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for WowError_StringsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for WowError_StringsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &WowError_StringsKey) -> Option<&mut WowError_StringsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -213,6 +149,9 @@ pub struct WowError_StringsRow {
     pub id: WowError_StringsKey,
     pub name: String,
     pub description_lang: ExtendedLocalizedString,
+}
+
+impl DbcRow for WowError_StringsRow {
 }
 
 #[cfg(test)]

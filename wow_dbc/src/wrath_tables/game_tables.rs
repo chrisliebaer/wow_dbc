@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct GameTables {
     pub rows: Vec<GameTablesRow>,
 }
 
+impl GameTables {
+    pub const FILENAME: &'static str = "GameTables.dbc";
+    pub const FIELD_COUNT: usize = 3;
+    pub const ROW_SIZE: usize = 12;
+
+}
+
+impl Into<WrathTable> for GameTables {
+    fn into(self) -> WrathTable {
+        WrathTable::GameTables(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for GameTables {
-    type Row = GameTablesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "GameTables.dbc";
-    const FIELD_COUNT: usize = 3;
-    const ROW_SIZE: usize = 12;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[GameTablesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [GameTablesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -116,6 +131,9 @@ pub struct GameTablesRow {
     pub name: String,
     pub num_rows: i32,
     pub num_columns: i32,
+}
+
+impl DbcRow for GameTablesRow {
 }
 
 #[cfg(test)]

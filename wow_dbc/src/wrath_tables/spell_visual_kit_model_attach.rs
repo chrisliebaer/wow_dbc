@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::spell_visual_effect_name::SpellVisualEffectNameKey;
-use crate::wrath_tables::spell_visual_kit::SpellVisualKitKey;
+use crate::wrath_tables::spell_visual_effect_name::{
+    SpellVisualEffectName, SpellVisualEffectNameKey,
+};
+use crate::wrath_tables::spell_visual_kit::{
+    SpellVisualKit, SpellVisualKitKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type SpellVisualKitModelAttachKey = crate::PrimaryKey<i32, SpellVisualKitModelAttach>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct SpellVisualKitModelAttach {
     pub rows: Vec<SpellVisualKitModelAttachRow>,
 }
 
+impl SpellVisualKitModelAttach {
+    pub const FILENAME: &'static str = "SpellVisualKitModelAttach.dbc";
+    pub const FIELD_COUNT: usize = 10;
+    pub const ROW_SIZE: usize = 40;
+
+    pub fn verify(&self, spell_visual_effect_name: &SpellVisualEffectName, spell_visual_kit: &SpellVisualKit) -> Result<(), crate::InvalidForeignKeyError<&SpellVisualKitModelAttachRow>> {
+        for row in &self.rows {
+            if row.parent_spell_visual_kit_id.id != 0 && spell_visual_kit.get(&row.parent_spell_visual_kit_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKitModelAttach>(),
+                    row,
+                    id,
+                    row.parent_spell_visual_kit_id.id.into()
+                ));
+            }
+
+            if row.spell_visual_effect_name_id.id != 0 && spell_visual_effect_name.get(&row.spell_visual_effect_name_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellVisualKitModelAttach>(),
+                    row,
+                    id,
+                    row.spell_visual_effect_name_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for SpellVisualKitModelAttach {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKitModelAttach(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellVisualKitModelAttach {
-    type Row = SpellVisualKitModelAttachRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellVisualKitModelAttach.dbc";
-    const FIELD_COUNT: usize = 10;
-    const ROW_SIZE: usize = 40;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellVisualKitModelAttachRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellVisualKitModelAttachRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -147,94 +193,16 @@ impl DbcTable for SpellVisualKitModelAttach {
 
 }
 
-impl Indexable for SpellVisualKitModelAttach {
-    type PrimaryKey = SpellVisualKitModelAttachKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SpellVisualKitModelAttach {
+    type Table = Self;
+
+    fn get(&self, key: &SpellVisualKitModelAttachKey) -> Option<&SpellVisualKitModelAttachRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellVisualKitModelAttachKey {
-    pub id: i32
-}
-
-impl SpellVisualKitModelAttachKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellVisualKitModelAttachKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellVisualKitModelAttachKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SpellVisualKitModelAttachKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SpellVisualKitModelAttachKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SpellVisualKitModelAttachKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SpellVisualKitModelAttachKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellVisualKitModelAttachKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SpellVisualKitModelAttachKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellVisualKitModelAttachKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellVisualKitModelAttachKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellVisualKitModelAttachKey) -> Option<&mut SpellVisualKitModelAttachRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -249,6 +217,9 @@ pub struct SpellVisualKitModelAttachRow {
     pub yaw: f32,
     pub pitch: f32,
     pub roll: f32,
+}
+
+impl DbcRow for SpellVisualKitModelAttachRow {
 }
 
 #[cfg(test)]

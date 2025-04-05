@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct gtChanceToMeleeCritBase {
     pub rows: Vec<gtChanceToMeleeCritBaseRow>,
 }
 
+impl gtChanceToMeleeCritBase {
+    pub const FILENAME: &'static str = "gtChanceToMeleeCritBase.dbc";
+    pub const FIELD_COUNT: usize = 1;
+    pub const ROW_SIZE: usize = 4;
+
+}
+
+impl Into<WrathTable> for gtChanceToMeleeCritBase {
+    fn into(self) -> WrathTable {
+        WrathTable::gtChanceToMeleeCritBase(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for gtChanceToMeleeCritBase {
-    type Row = gtChanceToMeleeCritBaseRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "gtChanceToMeleeCritBase.dbc";
-    const FIELD_COUNT: usize = 1;
-    const ROW_SIZE: usize = 4;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[gtChanceToMeleeCritBaseRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [gtChanceToMeleeCritBaseRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -95,6 +110,9 @@ impl DbcTable for gtChanceToMeleeCritBase {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct gtChanceToMeleeCritBaseRow {
     pub data: f32,
+}
+
+impl DbcRow for gtChanceToMeleeCritBaseRow {
 }
 
 #[cfg(test)]

@@ -1,19 +1,36 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::cinematic_sequences::CinematicSequencesKey;
-use crate::wrath_tables::creature_display_info::CreatureDisplayInfoKey;
-use crate::wrath_tables::creature_type::CreatureTypeKey;
-use crate::wrath_tables::faction_template::FactionTemplateKey;
-use crate::wrath_tables::languages::LanguagesKey;
-use crate::wrath_tables::sound_entries::SoundEntriesKey;
-use crate::wrath_tables::spell::SpellKey;
+use crate::wrath_tables::cinematic_sequences::{
+    CinematicSequences, CinematicSequencesKey,
+};
+use crate::wrath_tables::creature_display_info::{
+    CreatureDisplayInfo, CreatureDisplayInfoKey,
+};
+use crate::wrath_tables::creature_type::{
+    CreatureType, CreatureTypeKey,
+};
+use crate::wrath_tables::faction_template::{
+    FactionTemplate, FactionTemplateKey,
+};
+use crate::wrath_tables::languages::{
+    Languages, LanguagesKey,
+};
+use crate::wrath_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
+use crate::wrath_tables::spell::{
+    Spell, SpellKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type ChrRacesKey = crate::PrimaryKey<i32, ChrRaces>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -21,15 +38,124 @@ pub struct ChrRaces {
     pub rows: Vec<ChrRacesRow>,
 }
 
+impl ChrRaces {
+    pub const FILENAME: &'static str = "ChrRaces.dbc";
+    pub const FIELD_COUNT: usize = 69;
+    pub const ROW_SIZE: usize = 276;
+
+    pub fn verify(&self, cinematic_sequences: &CinematicSequences, creature_display_info: &CreatureDisplayInfo, creature_type: &CreatureType, faction_template: &FactionTemplate, languages: &Languages, sound_entries: &SoundEntries, spell: &Spell) -> Result<(), crate::InvalidForeignKeyError<&ChrRacesRow>> {
+        for row in &self.rows {
+            if row.faction_id.id != 0 && faction_template.get(&row.faction_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.faction_id.id.into()
+                ));
+            }
+
+            if row.exploration_sound_id.id != 0 && sound_entries.get(&row.exploration_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.exploration_sound_id.id.into()
+                ));
+            }
+
+            if row.male_display_id.id != 0 && creature_display_info.get(&row.male_display_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.male_display_id.id.into()
+                ));
+            }
+
+            if row.female_display_id.id != 0 && creature_display_info.get(&row.female_display_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.female_display_id.id.into()
+                ));
+            }
+
+            if row.base_language.id != 0 && languages.get(&row.base_language).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.base_language.id.into()
+                ));
+            }
+
+            if row.creature_type.id != 0 && creature_type.get(&row.creature_type).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.creature_type.id.into()
+                ));
+            }
+
+            if row.res_sickness_spell_id.id != 0 && spell.get(&row.res_sickness_spell_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.res_sickness_spell_id.id.into()
+                ));
+            }
+
+            if row.splash_sound_id.id != 0 && sound_entries.get(&row.splash_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.splash_sound_id.id.into()
+                ));
+            }
+
+            if row.cinematic_sequence_id.id != 0 && cinematic_sequences.get(&row.cinematic_sequence_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ChrRaces>(),
+                    row,
+                    id,
+                    row.cinematic_sequence_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for ChrRaces {
+    fn into(self) -> WrathTable {
+        WrathTable::ChrRaces(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for ChrRaces {
-    type Row = ChrRacesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "ChrRaces.dbc";
-    const FIELD_COUNT: usize = 69;
-    const ROW_SIZE: usize = 276;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[ChrRacesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [ChrRacesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -259,94 +385,16 @@ impl DbcTable for ChrRaces {
 
 }
 
-impl Indexable for ChrRaces {
-    type PrimaryKey = ChrRacesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for ChrRaces {
+    type Table = Self;
+
+    fn get(&self, key: &ChrRacesKey) -> Option<&ChrRacesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ChrRacesKey {
-    pub id: i32
-}
-
-impl ChrRacesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for ChrRacesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for ChrRacesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for ChrRacesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for ChrRacesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for ChrRacesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for ChrRacesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for ChrRacesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for ChrRacesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for ChrRacesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for ChrRacesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &ChrRacesKey) -> Option<&mut ChrRacesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -373,6 +421,9 @@ pub struct ChrRacesRow {
     pub facial_hair_customization: [String; 2],
     pub hair_customization: String,
     pub required_expansion: i32,
+}
+
+impl DbcRow for ChrRacesRow {
 }
 
 #[cfg(test)]

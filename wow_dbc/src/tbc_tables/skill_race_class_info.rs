@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::skill_line::SkillLineKey;
-use crate::tbc_tables::skill_tiers::SkillTiersKey;
+use crate::tbc_tables::skill_line::{
+    SkillLine, SkillLineKey,
+};
+use crate::tbc_tables::skill_tiers::{
+    SkillTiers, SkillTiersKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type SkillRaceClassInfoKey = crate::PrimaryKey<i32, SkillRaceClassInfo>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct SkillRaceClassInfo {
     pub rows: Vec<SkillRaceClassInfoRow>,
 }
 
+impl SkillRaceClassInfo {
+    pub const FILENAME: &'static str = "SkillRaceClassInfo.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+    pub fn verify(&self, skill_line: &SkillLine, skill_tiers: &SkillTiers) -> Result<(), crate::InvalidForeignKeyError<&SkillRaceClassInfoRow>> {
+        for row in &self.rows {
+            if row.skill_id.id != 0 && skill_line.get(&row.skill_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillRaceClassInfo>(),
+                    row,
+                    id,
+                    row.skill_id.id.into()
+                ));
+            }
+
+            if row.skill_tier_id.id != 0 && skill_tiers.get(&row.skill_tier_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SkillRaceClassInfo>(),
+                    row,
+                    id,
+                    row.skill_tier_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for SkillRaceClassInfo {
+    fn into(self) -> TbcTable {
+        TbcTable::SkillRaceClassInfo(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SkillRaceClassInfo {
-    type Row = SkillRaceClassInfoRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SkillRaceClassInfo.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SkillRaceClassInfoRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SkillRaceClassInfoRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -144,94 +190,16 @@ impl DbcTable for SkillRaceClassInfo {
 
 }
 
-impl Indexable for SkillRaceClassInfo {
-    type PrimaryKey = SkillRaceClassInfoKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SkillRaceClassInfo {
+    type Table = Self;
+
+    fn get(&self, key: &SkillRaceClassInfoKey) -> Option<&SkillRaceClassInfoRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SkillRaceClassInfoKey {
-    pub id: i32
-}
-
-impl SkillRaceClassInfoKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SkillRaceClassInfoKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SkillRaceClassInfoKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SkillRaceClassInfoKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SkillRaceClassInfoKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SkillRaceClassInfoKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SkillRaceClassInfoKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SkillRaceClassInfoKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SkillRaceClassInfoKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SkillRaceClassInfoKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SkillRaceClassInfoKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SkillRaceClassInfoKey) -> Option<&mut SkillRaceClassInfoRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -246,6 +214,9 @@ pub struct SkillRaceClassInfoRow {
     pub min_level: i32,
     pub skill_tier_id: SkillTiersKey,
     pub skill_cost_index: i32,
+}
+
+impl DbcRow for SkillRaceClassInfoRow {
 }
 
 #[cfg(test)]

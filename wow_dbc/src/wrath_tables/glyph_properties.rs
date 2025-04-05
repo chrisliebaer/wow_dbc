@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::spell::SpellKey;
-use crate::wrath_tables::spell_icon::SpellIconKey;
+use crate::wrath_tables::spell::{
+    Spell, SpellKey,
+};
+use crate::wrath_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type GlyphPropertiesKey = crate::PrimaryKey<i32, GlyphProperties>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct GlyphProperties {
     pub rows: Vec<GlyphPropertiesRow>,
 }
 
+impl GlyphProperties {
+    pub const FILENAME: &'static str = "GlyphProperties.dbc";
+    pub const FIELD_COUNT: usize = 4;
+    pub const ROW_SIZE: usize = 16;
+
+    pub fn verify(&self, spell: &Spell, spell_icon: &SpellIcon) -> Result<(), crate::InvalidForeignKeyError<&GlyphPropertiesRow>> {
+        for row in &self.rows {
+            if row.spell_id.id != 0 && spell.get(&row.spell_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<GlyphProperties>(),
+                    row,
+                    id,
+                    row.spell_id.id.into()
+                ));
+            }
+
+            if row.spell_icon_id.id != 0 && spell_icon.get(&row.spell_icon_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<GlyphProperties>(),
+                    row,
+                    id,
+                    row.spell_icon_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for GlyphProperties {
+    fn into(self) -> WrathTable {
+        WrathTable::GlyphProperties(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for GlyphProperties {
-    type Row = GlyphPropertiesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "GlyphProperties.dbc";
-    const FIELD_COUNT: usize = 4;
-    const ROW_SIZE: usize = 16;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[GlyphPropertiesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [GlyphPropertiesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -116,94 +162,16 @@ impl DbcTable for GlyphProperties {
 
 }
 
-impl Indexable for GlyphProperties {
-    type PrimaryKey = GlyphPropertiesKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for GlyphProperties {
+    type Table = Self;
+
+    fn get(&self, key: &GlyphPropertiesKey) -> Option<&GlyphPropertiesRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct GlyphPropertiesKey {
-    pub id: i32
-}
-
-impl GlyphPropertiesKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for GlyphPropertiesKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for GlyphPropertiesKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for GlyphPropertiesKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for GlyphPropertiesKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for GlyphPropertiesKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for GlyphPropertiesKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for GlyphPropertiesKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for GlyphPropertiesKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for GlyphPropertiesKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for GlyphPropertiesKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &GlyphPropertiesKey) -> Option<&mut GlyphPropertiesRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -214,6 +182,9 @@ pub struct GlyphPropertiesRow {
     pub spell_id: SpellKey,
     pub glyph_slot_flags: i32,
     pub spell_icon_id: SpellIconKey,
+}
+
+impl DbcRow for GlyphPropertiesRow {
 }
 
 #[cfg(test)]

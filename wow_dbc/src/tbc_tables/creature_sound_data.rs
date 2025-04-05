@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::footstep_terrain_lookup::FootstepTerrainLookupKey;
-use crate::tbc_tables::sound_entries::SoundEntriesKey;
+use crate::tbc_tables::footstep_terrain_lookup::{
+    FootstepTerrainLookup, FootstepTerrainLookupKey,
+};
+use crate::tbc_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type CreatureSoundDataKey = crate::PrimaryKey<i32, CreatureSoundData>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,254 @@ pub struct CreatureSoundData {
     pub rows: Vec<CreatureSoundDataRow>,
 }
 
+impl CreatureSoundData {
+    pub const FILENAME: &'static str = "CreatureSoundData.dbc";
+    pub const FIELD_COUNT: usize = 37;
+    pub const ROW_SIZE: usize = 148;
+
+    pub fn verify(&self, footstep_terrain_lookup: &FootstepTerrainLookup, sound_entries: &SoundEntries) -> Result<(), crate::InvalidForeignKeyError<&CreatureSoundDataRow>> {
+        for row in &self.rows {
+            if row.sound_exertion_id.id != 0 && sound_entries.get(&row.sound_exertion_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_exertion_id.id.into()
+                ));
+            }
+
+            if row.sound_exertion_critical_id.id != 0 && sound_entries.get(&row.sound_exertion_critical_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_exertion_critical_id.id.into()
+                ));
+            }
+
+            if row.sound_injury_id.id != 0 && sound_entries.get(&row.sound_injury_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_injury_id.id.into()
+                ));
+            }
+
+            if row.sound_injury_critical_id.id != 0 && sound_entries.get(&row.sound_injury_critical_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_injury_critical_id.id.into()
+                ));
+            }
+
+            if row.sound_death_id.id != 0 && sound_entries.get(&row.sound_death_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_death_id.id.into()
+                ));
+            }
+
+            if row.sound_stun_id.id != 0 && sound_entries.get(&row.sound_stun_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_stun_id.id.into()
+                ));
+            }
+
+            if row.sound_stand_id.id != 0 && sound_entries.get(&row.sound_stand_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_stand_id.id.into()
+                ));
+            }
+
+            if row.sound_footstep_id.id != 0 && footstep_terrain_lookup.get(&row.sound_footstep_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_footstep_id.id.into()
+                ));
+            }
+
+            if row.sound_aggro_id.id != 0 && sound_entries.get(&row.sound_aggro_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_aggro_id.id.into()
+                ));
+            }
+
+            if row.sound_wing_flap_id.id != 0 && sound_entries.get(&row.sound_wing_flap_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_wing_flap_id.id.into()
+                ));
+            }
+
+            if row.sound_wing_glide_id.id != 0 && sound_entries.get(&row.sound_wing_glide_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_wing_glide_id.id.into()
+                ));
+            }
+
+            if row.sound_alert_id.id != 0 && sound_entries.get(&row.sound_alert_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_alert_id.id.into()
+                ));
+            }
+
+            if row.loop_sound_id.id != 0 && sound_entries.get(&row.loop_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.loop_sound_id.id.into()
+                ));
+            }
+
+            if row.sound_jump_start_id.id != 0 && sound_entries.get(&row.sound_jump_start_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_jump_start_id.id.into()
+                ));
+            }
+
+            if row.sound_jump_end_id.id != 0 && sound_entries.get(&row.sound_jump_end_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_jump_end_id.id.into()
+                ));
+            }
+
+            if row.sound_pet_attack_id.id != 0 && sound_entries.get(&row.sound_pet_attack_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_pet_attack_id.id.into()
+                ));
+            }
+
+            if row.sound_pet_order_id.id != 0 && sound_entries.get(&row.sound_pet_order_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_pet_order_id.id.into()
+                ));
+            }
+
+            if row.sound_pet_dismiss_id.id != 0 && sound_entries.get(&row.sound_pet_dismiss_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.sound_pet_dismiss_id.id.into()
+                ));
+            }
+
+            if row.birth_sound_id.id != 0 && sound_entries.get(&row.birth_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.birth_sound_id.id.into()
+                ));
+            }
+
+            if row.spell_cast_directed_sound_id.id != 0 && sound_entries.get(&row.spell_cast_directed_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.spell_cast_directed_sound_id.id.into()
+                ));
+            }
+
+            if row.submerge_sound_id.id != 0 && sound_entries.get(&row.submerge_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.submerge_sound_id.id.into()
+                ));
+            }
+
+            if row.submerged_sound_id.id != 0 && sound_entries.get(&row.submerged_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureSoundData>(),
+                    row,
+                    id,
+                    row.submerged_sound_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for CreatureSoundData {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureSoundData(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CreatureSoundData {
-    type Row = CreatureSoundDataRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CreatureSoundData.dbc";
-    const FIELD_COUNT: usize = 37;
-    const ROW_SIZE: usize = 148;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CreatureSoundDataRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CreatureSoundDataRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -304,94 +550,16 @@ impl DbcTable for CreatureSoundData {
 
 }
 
-impl Indexable for CreatureSoundData {
-    type PrimaryKey = CreatureSoundDataKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for CreatureSoundData {
+    type Table = Self;
+
+    fn get(&self, key: &CreatureSoundDataKey) -> Option<&CreatureSoundDataRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CreatureSoundDataKey {
-    pub id: i32
-}
-
-impl CreatureSoundDataKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CreatureSoundDataKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CreatureSoundDataKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for CreatureSoundDataKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for CreatureSoundDataKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for CreatureSoundDataKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for CreatureSoundDataKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CreatureSoundDataKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for CreatureSoundDataKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CreatureSoundDataKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CreatureSoundDataKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CreatureSoundDataKey) -> Option<&mut CreatureSoundDataRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -428,6 +596,9 @@ pub struct CreatureSoundDataRow {
     pub spell_cast_directed_sound_id: SoundEntriesKey,
     pub submerge_sound_id: SoundEntriesKey,
     pub submerged_sound_id: SoundEntriesKey,
+}
+
+impl DbcRow for CreatureSoundDataRow {
 }
 
 #[cfg(test)]

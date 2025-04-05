@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,9 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type FactionKey = crate::PrimaryKey<i32, Faction>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +17,44 @@ pub struct Faction {
     pub rows: Vec<FactionRow>,
 }
 
+impl Faction {
+    pub const FILENAME: &'static str = "Faction.dbc";
+    pub const FIELD_COUNT: usize = 57;
+    pub const ROW_SIZE: usize = 228;
+
+    pub fn verify(&self, ) -> Result<(), crate::InvalidForeignKeyError<&FactionRow>> {
+        for row in &self.rows {
+            if row.parent_faction_id.id != 0 && self.get(&row.parent_faction_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Faction>(),
+                    row,
+                    id,
+                    row.parent_faction_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Faction {
+    fn into(self) -> WrathTable {
+        WrathTable::Faction(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Faction {
-    type Row = FactionRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Faction.dbc";
-    const FIELD_COUNT: usize = 57;
-    const ROW_SIZE: usize = 228;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[FactionRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [FactionRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -184,94 +216,16 @@ impl DbcTable for Faction {
 
 }
 
-impl Indexable for Faction {
-    type PrimaryKey = FactionKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Faction {
+    type Table = Self;
+
+    fn get(&self, key: &FactionKey) -> Option<&FactionRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FactionKey {
-    pub id: i32
-}
-
-impl FactionKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for FactionKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for FactionKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for FactionKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for FactionKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for FactionKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for FactionKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for FactionKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for FactionKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for FactionKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for FactionKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &FactionKey) -> Option<&mut FactionRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -289,6 +243,9 @@ pub struct FactionRow {
     pub parent_faction_cap: [i32; 2],
     pub name_lang: ExtendedLocalizedString,
     pub description_lang: ExtendedLocalizedString,
+}
+
+impl DbcRow for FactionRow {
 }
 
 #[cfg(test)]

@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type SpellVisualKitAreaModelKey = crate::PrimaryKey<i32, SpellVisualKitAreaModel>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct SpellVisualKitAreaModel {
     pub rows: Vec<SpellVisualKitAreaModelRow>,
 }
 
+impl SpellVisualKitAreaModel {
+    pub const FILENAME: &'static str = "SpellVisualKitAreaModel.dbc";
+    pub const FIELD_COUNT: usize = 3;
+    pub const ROW_SIZE: usize = 12;
+
+}
+
+impl Into<WrathTable> for SpellVisualKitAreaModel {
+    fn into(self) -> WrathTable {
+        WrathTable::SpellVisualKitAreaModel(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellVisualKitAreaModel {
-    type Row = SpellVisualKitAreaModelRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellVisualKitAreaModel.dbc";
-    const FIELD_COUNT: usize = 3;
-    const ROW_SIZE: usize = 12;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellVisualKitAreaModelRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellVisualKitAreaModelRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -112,94 +127,16 @@ impl DbcTable for SpellVisualKitAreaModel {
 
 }
 
-impl Indexable for SpellVisualKitAreaModel {
-    type PrimaryKey = SpellVisualKitAreaModelKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SpellVisualKitAreaModel {
+    type Table = Self;
+
+    fn get(&self, key: &SpellVisualKitAreaModelKey) -> Option<&SpellVisualKitAreaModelRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellVisualKitAreaModelKey {
-    pub id: i32
-}
-
-impl SpellVisualKitAreaModelKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellVisualKitAreaModelKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellVisualKitAreaModelKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SpellVisualKitAreaModelKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SpellVisualKitAreaModelKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SpellVisualKitAreaModelKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SpellVisualKitAreaModelKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellVisualKitAreaModelKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SpellVisualKitAreaModelKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellVisualKitAreaModelKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellVisualKitAreaModelKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellVisualKitAreaModelKey) -> Option<&mut SpellVisualKitAreaModelRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -209,6 +146,9 @@ pub struct SpellVisualKitAreaModelRow {
     pub id: SpellVisualKitAreaModelKey,
     pub name: String,
     pub enum_id: i32,
+}
+
+impl DbcRow for SpellVisualKitAreaModelRow {
 }
 
 #[cfg(test)]

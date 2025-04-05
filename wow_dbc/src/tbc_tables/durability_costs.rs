@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type DurabilityCostsKey = crate::PrimaryKey<i32, DurabilityCosts>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct DurabilityCosts {
     pub rows: Vec<DurabilityCostsRow>,
 }
 
+impl DurabilityCosts {
+    pub const FILENAME: &'static str = "DurabilityCosts.dbc";
+    pub const FIELD_COUNT: usize = 30;
+    pub const ROW_SIZE: usize = 120;
+
+}
+
+impl Into<TbcTable> for DurabilityCosts {
+    fn into(self) -> TbcTable {
+        TbcTable::DurabilityCosts(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for DurabilityCosts {
-    type Row = DurabilityCostsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "DurabilityCosts.dbc";
-    const FIELD_COUNT: usize = 30;
-    const ROW_SIZE: usize = 120;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[DurabilityCostsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [DurabilityCostsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -113,94 +128,16 @@ impl DbcTable for DurabilityCosts {
 
 }
 
-impl Indexable for DurabilityCosts {
-    type PrimaryKey = DurabilityCostsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for DurabilityCosts {
+    type Table = Self;
+
+    fn get(&self, key: &DurabilityCostsKey) -> Option<&DurabilityCostsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DurabilityCostsKey {
-    pub id: i32
-}
-
-impl DurabilityCostsKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for DurabilityCostsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for DurabilityCostsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for DurabilityCostsKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for DurabilityCostsKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for DurabilityCostsKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for DurabilityCostsKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for DurabilityCostsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for DurabilityCostsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for DurabilityCostsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for DurabilityCostsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &DurabilityCostsKey) -> Option<&mut DurabilityCostsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -210,6 +147,9 @@ pub struct DurabilityCostsRow {
     pub id: DurabilityCostsKey,
     pub weapon_sub_class_cost: [i32; 21],
     pub armor_sub_class_cost: [i32; 8],
+}
+
+impl DbcRow for DurabilityCostsRow {
 }
 
 #[cfg(test)]

@@ -1,17 +1,32 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
-use crate::tbc_tables::creature_display_info_extra::CreatureDisplayInfoExtraKey;
-use crate::tbc_tables::creature_model_data::CreatureModelDataKey;
-use crate::tbc_tables::creature_sound_data::CreatureSoundDataKey;
-use crate::tbc_tables::npc_sounds::NPCSoundsKey;
-use crate::tbc_tables::particle_color::ParticleColorKey;
-use crate::tbc_tables::unit_blood::UnitBloodKey;
+use crate::tbc_tables::creature_display_info_extra::{
+    CreatureDisplayInfoExtra, CreatureDisplayInfoExtraKey,
+};
+use crate::tbc_tables::creature_model_data::{
+    CreatureModelData, CreatureModelDataKey,
+};
+use crate::tbc_tables::creature_sound_data::{
+    CreatureSoundData, CreatureSoundDataKey,
+};
+use crate::tbc_tables::npc_sounds::{
+    NPCSounds, NPCSoundsKey,
+};
+use crate::tbc_tables::particle_color::{
+    ParticleColor, ParticleColorKey,
+};
+use crate::tbc_tables::unit_blood::{
+    UnitBlood, UnitBloodKey,
+};
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
+
+pub type CreatureDisplayInfoKey = crate::PrimaryKey<i32, CreatureDisplayInfo>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -19,15 +34,94 @@ pub struct CreatureDisplayInfo {
     pub rows: Vec<CreatureDisplayInfoRow>,
 }
 
+impl CreatureDisplayInfo {
+    pub const FILENAME: &'static str = "CreatureDisplayInfo.dbc";
+    pub const FIELD_COUNT: usize = 14;
+    pub const ROW_SIZE: usize = 56;
+
+    pub fn verify(&self, creature_display_info_extra: &CreatureDisplayInfoExtra, creature_model_data: &CreatureModelData, creature_sound_data: &CreatureSoundData, npc_sounds: &NPCSounds, particle_color: &ParticleColor, unit_blood: &UnitBlood) -> Result<(), crate::InvalidForeignKeyError<&CreatureDisplayInfoRow>> {
+        for row in &self.rows {
+            if row.model_id.id != 0 && creature_model_data.get(&row.model_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.model_id.id.into()
+                ));
+            }
+
+            if row.sound_id.id != 0 && creature_sound_data.get(&row.sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.sound_id.id.into()
+                ));
+            }
+
+            if row.extended_display_info_id.id != 0 && creature_display_info_extra.get(&row.extended_display_info_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.extended_display_info_id.id.into()
+                ));
+            }
+
+            if row.blood_id.id != 0 && unit_blood.get(&row.blood_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.blood_id.id.into()
+                ));
+            }
+
+            if row.n_p_c_sound_id.id != 0 && npc_sounds.get(&row.n_p_c_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.n_p_c_sound_id.id.into()
+                ));
+            }
+
+            if row.particle_color_id.id != 0 && particle_color.get(&row.particle_color_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CreatureDisplayInfo>(),
+                    row,
+                    id,
+                    row.particle_color_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<TbcTable> for CreatureDisplayInfo {
+    fn into(self) -> TbcTable {
+        TbcTable::CreatureDisplayInfo(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CreatureDisplayInfo {
-    type Row = CreatureDisplayInfoRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CreatureDisplayInfo.dbc";
-    const FIELD_COUNT: usize = 14;
-    const ROW_SIZE: usize = 56;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CreatureDisplayInfoRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CreatureDisplayInfoRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -195,94 +289,16 @@ impl DbcTable for CreatureDisplayInfo {
 
 }
 
-impl Indexable for CreatureDisplayInfo {
-    type PrimaryKey = CreatureDisplayInfoKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for CreatureDisplayInfo {
+    type Table = Self;
+
+    fn get(&self, key: &CreatureDisplayInfoKey) -> Option<&CreatureDisplayInfoRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CreatureDisplayInfoKey {
-    pub id: i32
-}
-
-impl CreatureDisplayInfoKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CreatureDisplayInfoKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CreatureDisplayInfoKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for CreatureDisplayInfoKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for CreatureDisplayInfoKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for CreatureDisplayInfoKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for CreatureDisplayInfoKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CreatureDisplayInfoKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for CreatureDisplayInfoKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CreatureDisplayInfoKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CreatureDisplayInfoKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CreatureDisplayInfoKey) -> Option<&mut CreatureDisplayInfoRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -301,6 +317,9 @@ pub struct CreatureDisplayInfoRow {
     pub blood_id: UnitBloodKey,
     pub n_p_c_sound_id: NPCSoundsKey,
     pub particle_color_id: ParticleColorKey,
+}
+
+impl DbcRow for CreatureDisplayInfoRow {
 }
 
 #[cfg(test)]

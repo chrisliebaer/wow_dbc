@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::TbcTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct AttackAnimTypes {
     pub rows: Vec<AttackAnimTypesRow>,
 }
 
+impl AttackAnimTypes {
+    pub const FILENAME: &'static str = "AttackAnimTypes.dbc";
+    pub const FIELD_COUNT: usize = 2;
+    pub const ROW_SIZE: usize = 8;
+
+}
+
+impl Into<TbcTable> for AttackAnimTypes {
+    fn into(self) -> TbcTable {
+        TbcTable::AttackAnimTypes(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for AttackAnimTypes {
-    type Row = AttackAnimTypesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "AttackAnimTypes.dbc";
-    const FIELD_COUNT: usize = 2;
-    const ROW_SIZE: usize = 8;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[AttackAnimTypesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [AttackAnimTypesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -108,6 +123,9 @@ impl DbcTable for AttackAnimTypes {
 pub struct AttackAnimTypesRow {
     pub anim_id: i32,
     pub anim_name: String,
+}
+
+impl DbcRow for AttackAnimTypesRow {
 }
 
 #[cfg(test)]

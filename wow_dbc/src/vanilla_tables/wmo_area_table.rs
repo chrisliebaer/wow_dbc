@@ -1,17 +1,30 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::vanilla_tables::area_table::AreaTableKey;
-use crate::vanilla_tables::sound_ambience::SoundAmbienceKey;
-use crate::vanilla_tables::sound_provider_preferences::SoundProviderPreferencesKey;
-use crate::vanilla_tables::zone_intro_music_table::ZoneIntroMusicTableKey;
-use crate::vanilla_tables::zone_music::ZoneMusicKey;
+use crate::vanilla_tables::area_table::{
+    AreaTable, AreaTableKey,
+};
+use crate::vanilla_tables::sound_ambience::{
+    SoundAmbience, SoundAmbienceKey,
+};
+use crate::vanilla_tables::sound_provider_preferences::{
+    SoundProviderPreferences, SoundProviderPreferencesKey,
+};
+use crate::vanilla_tables::zone_intro_music_table::{
+    ZoneIntroMusicTable, ZoneIntroMusicTableKey,
+};
+use crate::vanilla_tables::zone_music::{
+    ZoneMusic, ZoneMusicKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type WMOAreaTableKey = crate::PrimaryKey<u32, WMOAreaTable>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -19,15 +32,94 @@ pub struct WMOAreaTable {
     pub rows: Vec<WMOAreaTableRow>,
 }
 
+impl WMOAreaTable {
+    pub const FILENAME: &'static str = "WMOAreaTable.dbc";
+    pub const FIELD_COUNT: usize = 20;
+    pub const ROW_SIZE: usize = 80;
+
+    pub fn verify(&self, area_table: &AreaTable, sound_ambience: &SoundAmbience, sound_provider_preferences: &SoundProviderPreferences, zone_intro_music_table: &ZoneIntroMusicTable, zone_music: &ZoneMusic) -> Result<(), crate::InvalidForeignKeyError<&WMOAreaTableRow>> {
+        for row in &self.rows {
+            if row.sound_provider_preferences.id != 0 && sound_provider_preferences.get(&row.sound_provider_preferences).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.sound_provider_preferences.id.into()
+                ));
+            }
+
+            if row.sound_provider_preferences_underwater.id != 0 && sound_provider_preferences.get(&row.sound_provider_preferences_underwater).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.sound_provider_preferences_underwater.id.into()
+                ));
+            }
+
+            if row.sound_ambience.id != 0 && sound_ambience.get(&row.sound_ambience).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.sound_ambience.id.into()
+                ));
+            }
+
+            if row.zone_music.id != 0 && zone_music.get(&row.zone_music).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.zone_music.id.into()
+                ));
+            }
+
+            if row.zone_intro_music.id != 0 && zone_intro_music_table.get(&row.zone_intro_music).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.zone_intro_music.id.into()
+                ));
+            }
+
+            if row.area_table.id != 0 && area_table.get(&row.area_table).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<WMOAreaTable>(),
+                    row,
+                    id,
+                    row.area_table.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for WMOAreaTable {
+    fn into(self) -> VanillaTable {
+        VanillaTable::WMOAreaTable(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for WMOAreaTable {
-    type Row = WMOAreaTableRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "WMOAreaTable.dbc";
-    const FIELD_COUNT: usize = 20;
-    const ROW_SIZE: usize = 80;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[WMOAreaTableRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [WMOAreaTableRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -178,96 +270,16 @@ impl DbcTable for WMOAreaTable {
 
 }
 
-impl Indexable for WMOAreaTable {
-    type PrimaryKey = WMOAreaTableKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for WMOAreaTable {
+    type Table = Self;
+
+    fn get(&self, key: &WMOAreaTableKey) -> Option<&WMOAreaTableRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct WMOAreaTableKey {
-    pub id: u32
-}
-
-impl WMOAreaTableKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for WMOAreaTableKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for WMOAreaTableKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for WMOAreaTableKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for WMOAreaTableKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for WMOAreaTableKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for WMOAreaTableKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for WMOAreaTableKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for WMOAreaTableKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for WMOAreaTableKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for WMOAreaTableKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &WMOAreaTableKey) -> Option<&mut WMOAreaTableRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -286,6 +298,9 @@ pub struct WMOAreaTableRow {
     pub flags: u32,
     pub area_table: AreaTableKey,
     pub name: LocalizedString,
+}
+
+impl DbcRow for WMOAreaTableRow {
 }
 
 #[cfg(test)]

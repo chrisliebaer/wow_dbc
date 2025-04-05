@@ -245,7 +245,7 @@ pub(crate) fn write_to_sqlite(conn: &mut Connection, file_name: &str, file_conte
                 &row.description_lang.unknown_14,
                 &row.description_lang.unknown_15,
                 &row.description_lang.flags,
-                row.world_state_id,
+                row.world_state_id.id,
                 row.world_map_link,
                 ])?;
             }

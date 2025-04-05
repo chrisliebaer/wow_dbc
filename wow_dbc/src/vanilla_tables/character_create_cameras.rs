@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
+
+pub type CharacterCreateCamerasKey = crate::PrimaryKey<u32, CharacterCreateCameras>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct CharacterCreateCameras {
     pub rows: Vec<CharacterCreateCamerasRow>,
 }
 
+impl CharacterCreateCameras {
+    pub const FILENAME: &'static str = "CharacterCreateCameras.dbc";
+    pub const FIELD_COUNT: usize = 6;
+    pub const ROW_SIZE: usize = 24;
+
+}
+
+impl Into<VanillaTable> for CharacterCreateCameras {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharacterCreateCameras(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharacterCreateCameras {
-    type Row = CharacterCreateCamerasRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharacterCreateCameras.dbc";
-    const FIELD_COUNT: usize = 6;
-    const ROW_SIZE: usize = 24;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharacterCreateCamerasRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharacterCreateCamerasRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -120,96 +135,16 @@ impl DbcTable for CharacterCreateCameras {
 
 }
 
-impl Indexable for CharacterCreateCameras {
-    type PrimaryKey = CharacterCreateCamerasKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for CharacterCreateCameras {
+    type Table = Self;
+
+    fn get(&self, key: &CharacterCreateCamerasKey) -> Option<&CharacterCreateCamerasRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CharacterCreateCamerasKey {
-    pub id: u32
-}
-
-impl CharacterCreateCamerasKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CharacterCreateCamerasKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CharacterCreateCamerasKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for CharacterCreateCamerasKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for CharacterCreateCamerasKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CharacterCreateCamerasKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for CharacterCreateCamerasKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for CharacterCreateCamerasKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for CharacterCreateCamerasKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CharacterCreateCamerasKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CharacterCreateCamerasKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CharacterCreateCamerasKey) -> Option<&mut CharacterCreateCamerasRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -219,5 +154,8 @@ pub struct CharacterCreateCamerasRow {
     pub id: CharacterCreateCamerasKey,
     pub unknown: [bool; 2],
     pub unknown_2: [f32; 3],
+}
+
+impl DbcRow for CharacterCreateCamerasRow {
 }
 

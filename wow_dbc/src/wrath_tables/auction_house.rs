@@ -1,13 +1,18 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::faction::FactionKey;
+use crate::wrath_tables::faction::{
+    Faction, FactionKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type AuctionHouseKey = crate::PrimaryKey<i32, AuctionHouse>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +20,44 @@ pub struct AuctionHouse {
     pub rows: Vec<AuctionHouseRow>,
 }
 
+impl AuctionHouse {
+    pub const FILENAME: &'static str = "AuctionHouse.dbc";
+    pub const FIELD_COUNT: usize = 21;
+    pub const ROW_SIZE: usize = 84;
+
+    pub fn verify(&self, faction: &Faction) -> Result<(), crate::InvalidForeignKeyError<&AuctionHouseRow>> {
+        for row in &self.rows {
+            if row.faction_id.id != 0 && faction.get(&row.faction_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<AuctionHouse>(),
+                    row,
+                    id,
+                    row.faction_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for AuctionHouse {
+    fn into(self) -> WrathTable {
+        WrathTable::AuctionHouse(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for AuctionHouse {
-    type Row = AuctionHouseRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "AuctionHouse.dbc";
-    const FIELD_COUNT: usize = 21;
-    const ROW_SIZE: usize = 84;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[AuctionHouseRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [AuctionHouseRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -125,94 +159,16 @@ impl DbcTable for AuctionHouse {
 
 }
 
-impl Indexable for AuctionHouse {
-    type PrimaryKey = AuctionHouseKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for AuctionHouse {
+    type Table = Self;
+
+    fn get(&self, key: &AuctionHouseKey) -> Option<&AuctionHouseRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AuctionHouseKey {
-    pub id: i32
-}
-
-impl AuctionHouseKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for AuctionHouseKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for AuctionHouseKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for AuctionHouseKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for AuctionHouseKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for AuctionHouseKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for AuctionHouseKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for AuctionHouseKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for AuctionHouseKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for AuctionHouseKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for AuctionHouseKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &AuctionHouseKey) -> Option<&mut AuctionHouseRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -224,6 +180,9 @@ pub struct AuctionHouseRow {
     pub deposit_rate: i32,
     pub consignment_rate: i32,
     pub name_lang: ExtendedLocalizedString,
+}
+
+impl DbcRow for AuctionHouseRow {
 }
 
 #[cfg(test)]

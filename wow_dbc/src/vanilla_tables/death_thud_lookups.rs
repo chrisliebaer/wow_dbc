@@ -1,14 +1,21 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::sound_entries::SoundEntriesKey;
-use crate::vanilla_tables::terrain_type::TerrainTypeKey;
+use crate::vanilla_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
+use crate::vanilla_tables::terrain_type::{
+    TerrainType, TerrainTypeKey,
+};
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::SizeClass;
+
+pub type DeathThudLookupsKey = crate::PrimaryKey<u32, DeathThudLookups>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +23,64 @@ pub struct DeathThudLookups {
     pub rows: Vec<DeathThudLookupsRow>,
 }
 
+impl DeathThudLookups {
+    pub const FILENAME: &'static str = "DeathThudLookups.dbc";
+    pub const FIELD_COUNT: usize = 5;
+    pub const ROW_SIZE: usize = 20;
+
+    pub fn verify(&self, sound_entries: &SoundEntries, terrain_type: &TerrainType) -> Result<(), crate::InvalidForeignKeyError<&DeathThudLookupsRow>> {
+        for row in &self.rows {
+            if row.terrain_type.id != 0 && terrain_type.get(&row.terrain_type).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DeathThudLookups>(),
+                    row,
+                    id,
+                    row.terrain_type.id.into()
+                ));
+            }
+
+            if row.sound_entry.id != 0 && sound_entries.get(&row.sound_entry).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DeathThudLookups>(),
+                    row,
+                    id,
+                    row.sound_entry.id.into()
+                ));
+            }
+
+            if row.sound_entry_water.id != 0 && sound_entries.get(&row.sound_entry_water).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DeathThudLookups>(),
+                    row,
+                    id,
+                    row.sound_entry_water.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for DeathThudLookups {
+    fn into(self) -> VanillaTable {
+        VanillaTable::DeathThudLookups(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for DeathThudLookups {
-    type Row = DeathThudLookupsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "DeathThudLookups.dbc";
-    const FIELD_COUNT: usize = 5;
-    const ROW_SIZE: usize = 20;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[DeathThudLookupsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [DeathThudLookupsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -124,96 +180,16 @@ impl DbcTable for DeathThudLookups {
 
 }
 
-impl Indexable for DeathThudLookups {
-    type PrimaryKey = DeathThudLookupsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for DeathThudLookups {
+    type Table = Self;
+
+    fn get(&self, key: &DeathThudLookupsKey) -> Option<&DeathThudLookupsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DeathThudLookupsKey {
-    pub id: u32
-}
-
-impl DeathThudLookupsKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for DeathThudLookupsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for DeathThudLookupsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for DeathThudLookupsKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for DeathThudLookupsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for DeathThudLookupsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for DeathThudLookupsKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for DeathThudLookupsKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for DeathThudLookupsKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for DeathThudLookupsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for DeathThudLookupsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &DeathThudLookupsKey) -> Option<&mut DeathThudLookupsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -225,6 +201,9 @@ pub struct DeathThudLookupsRow {
     pub terrain_type: TerrainTypeKey,
     pub sound_entry: SoundEntriesKey,
     pub sound_entry_water: SoundEntriesKey,
+}
+
+impl DbcRow for DeathThudLookupsRow {
 }
 
 #[cfg(test)]

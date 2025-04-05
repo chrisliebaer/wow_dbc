@@ -1,13 +1,18 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::vanilla_tables::item_visuals::ItemVisualsKey;
+use crate::vanilla_tables::item_visuals::{
+    ItemVisuals, ItemVisualsKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type SpellItemEnchantmentKey = crate::PrimaryKey<u32, SpellItemEnchantment>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +20,44 @@ pub struct SpellItemEnchantment {
     pub rows: Vec<SpellItemEnchantmentRow>,
 }
 
+impl SpellItemEnchantment {
+    pub const FILENAME: &'static str = "SpellItemEnchantment.dbc";
+    pub const FIELD_COUNT: usize = 24;
+    pub const ROW_SIZE: usize = 96;
+
+    pub fn verify(&self, item_visuals: &ItemVisuals) -> Result<(), crate::InvalidForeignKeyError<&SpellItemEnchantmentRow>> {
+        for row in &self.rows {
+            if row.item_visual.id != 0 && item_visuals.get(&row.item_visual).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SpellItemEnchantment>(),
+                    row,
+                    id,
+                    row.item_visual.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for SpellItemEnchantment {
+    fn into(self) -> VanillaTable {
+        VanillaTable::SpellItemEnchantment(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SpellItemEnchantment {
-    type Row = SpellItemEnchantmentRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SpellItemEnchantment.dbc";
-    const FIELD_COUNT: usize = 24;
-    const ROW_SIZE: usize = 96;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SpellItemEnchantmentRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SpellItemEnchantmentRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -158,96 +192,16 @@ impl DbcTable for SpellItemEnchantment {
 
 }
 
-impl Indexable for SpellItemEnchantment {
-    type PrimaryKey = SpellItemEnchantmentKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for SpellItemEnchantment {
+    type Table = Self;
+
+    fn get(&self, key: &SpellItemEnchantmentKey) -> Option<&SpellItemEnchantmentRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpellItemEnchantmentKey {
-    pub id: u32
-}
-
-impl SpellItemEnchantmentKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SpellItemEnchantmentKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SpellItemEnchantmentKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for SpellItemEnchantmentKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for SpellItemEnchantmentKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SpellItemEnchantmentKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for SpellItemEnchantmentKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for SpellItemEnchantmentKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for SpellItemEnchantmentKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SpellItemEnchantmentKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SpellItemEnchantmentKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SpellItemEnchantmentKey) -> Option<&mut SpellItemEnchantmentRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -262,6 +216,9 @@ pub struct SpellItemEnchantmentRow {
     pub name: LocalizedString,
     pub item_visual: ItemVisualsKey,
     pub flags: i32,
+}
+
+impl DbcRow for SpellItemEnchantmentRow {
 }
 
 #[cfg(test)]

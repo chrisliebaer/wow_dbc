@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type BannedAddOnsKey = crate::PrimaryKey<i32, BannedAddOns>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct BannedAddOns {
     pub rows: Vec<BannedAddOnsRow>,
 }
 
+impl BannedAddOns {
+    pub const FILENAME: &'static str = "BannedAddOns.dbc";
+    pub const FIELD_COUNT: usize = 11;
+    pub const ROW_SIZE: usize = 44;
+
+}
+
+impl Into<WrathTable> for BannedAddOns {
+    fn into(self) -> WrathTable {
+        WrathTable::BannedAddOns(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for BannedAddOns {
-    type Row = BannedAddOnsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "BannedAddOns.dbc";
-    const FIELD_COUNT: usize = 11;
-    const ROW_SIZE: usize = 44;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[BannedAddOnsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [BannedAddOnsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -127,94 +142,16 @@ impl DbcTable for BannedAddOns {
 
 }
 
-impl Indexable for BannedAddOns {
-    type PrimaryKey = BannedAddOnsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for BannedAddOns {
+    type Table = Self;
+
+    fn get(&self, key: &BannedAddOnsKey) -> Option<&BannedAddOnsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BannedAddOnsKey {
-    pub id: i32
-}
-
-impl BannedAddOnsKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for BannedAddOnsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for BannedAddOnsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for BannedAddOnsKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for BannedAddOnsKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for BannedAddOnsKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for BannedAddOnsKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for BannedAddOnsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for BannedAddOnsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for BannedAddOnsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for BannedAddOnsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &BannedAddOnsKey) -> Option<&mut BannedAddOnsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -226,6 +163,9 @@ pub struct BannedAddOnsRow {
     pub version_m_d5: [i32; 4],
     pub last_modified: i32,
     pub flags: i32,
+}
+
+impl DbcRow for BannedAddOnsRow {
 }
 
 #[cfg(test)]

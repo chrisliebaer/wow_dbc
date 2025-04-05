@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::chr_races::ChrRacesKey;
-use crate::vanilla_tables::sound_entries::SoundEntriesKey;
+use crate::vanilla_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
+use crate::vanilla_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
 use std::io::Write;
+use super::VanillaTable;
+
+pub type VocalUISoundsKey = crate::PrimaryKey<u32, VocalUISounds>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,84 @@ pub struct VocalUISounds {
     pub rows: Vec<VocalUISoundsRow>,
 }
 
+impl VocalUISounds {
+    pub const FILENAME: &'static str = "VocalUISounds.dbc";
+    pub const FIELD_COUNT: usize = 7;
+    pub const ROW_SIZE: usize = 28;
+
+    pub fn verify(&self, chr_races: &ChrRaces, sound_entries: &SoundEntries) -> Result<(), crate::InvalidForeignKeyError<&VocalUISoundsRow>> {
+        for row in &self.rows {
+            if row.race.id != 0 && chr_races.get(&row.race).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VocalUISounds>(),
+                    row,
+                    id,
+                    row.race.id.into()
+                ));
+            }
+
+            if row.normal_male_sound.id != 0 && sound_entries.get(&row.normal_male_sound).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VocalUISounds>(),
+                    row,
+                    id,
+                    row.normal_male_sound.id.into()
+                ));
+            }
+
+            if row.normal_female_sound.id != 0 && sound_entries.get(&row.normal_female_sound).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VocalUISounds>(),
+                    row,
+                    id,
+                    row.normal_female_sound.id.into()
+                ));
+            }
+
+            if row.pissed_male_sound.id != 0 && sound_entries.get(&row.pissed_male_sound).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VocalUISounds>(),
+                    row,
+                    id,
+                    row.pissed_male_sound.id.into()
+                ));
+            }
+
+            if row.pissed_female_sound.id != 0 && sound_entries.get(&row.pissed_female_sound).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VocalUISounds>(),
+                    row,
+                    id,
+                    row.pissed_female_sound.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for VocalUISounds {
+    fn into(self) -> VanillaTable {
+        VanillaTable::VocalUISounds(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for VocalUISounds {
-    type Row = VocalUISoundsRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "VocalUISounds.dbc";
-    const FIELD_COUNT: usize = 7;
-    const ROW_SIZE: usize = 28;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[VocalUISoundsRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [VocalUISoundsRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -137,96 +213,16 @@ impl DbcTable for VocalUISounds {
 
 }
 
-impl Indexable for VocalUISounds {
-    type PrimaryKey = VocalUISoundsKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for VocalUISounds {
+    type Table = Self;
+
+    fn get(&self, key: &VocalUISoundsKey) -> Option<&VocalUISoundsRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct VocalUISoundsKey {
-    pub id: u32
-}
-
-impl VocalUISoundsKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for VocalUISoundsKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for VocalUISoundsKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for VocalUISoundsKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for VocalUISoundsKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for VocalUISoundsKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for VocalUISoundsKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for VocalUISoundsKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for VocalUISoundsKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for VocalUISoundsKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for VocalUISoundsKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &VocalUISoundsKey) -> Option<&mut VocalUISoundsRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -240,6 +236,9 @@ pub struct VocalUISoundsRow {
     pub normal_female_sound: SoundEntriesKey,
     pub pissed_male_sound: SoundEntriesKey,
     pub pissed_female_sound: SoundEntriesKey,
+}
+
+impl DbcRow for VocalUISoundsRow {
 }
 
 #[cfg(test)]

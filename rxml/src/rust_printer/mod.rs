@@ -17,9 +17,7 @@ pub fn create_table(d: &DbcDescription, o: &Objects, version: DbcVersion) -> Wri
 
     includes(&mut s, d, o, version);
 
-    main_ty::create_main_ty(&mut s, d, o);
-
-    create_primary_keys(&mut s, d);
+    main_ty::create_main_ty(&mut s, d, o, version);
 
     create_row(&mut s, d, o);
 
@@ -58,6 +56,9 @@ fn includes(s: &mut Writer, d: &DbcDescription, o: &Objects, version: DbcVersion
     insert(&mut map, "crate::util", "StringCache");
 
     insert(&mut map, "crate", "DbcTable");
+    insert(&mut map, "crate", "DbcRow");
+
+    insert(&mut map, "super", format!("{}Table", version.to_str_capitalized()));
 
     if d.primary_key().is_some() {
         insert(&mut map, "crate", "Indexable");
@@ -82,10 +83,26 @@ fn includes(s: &mut Writer, d: &DbcDescription, o: &Objects, version: DbcVersion
         }
 
         let name = foreign_key.to_snake_case();
+
+        // import the foreign table
+        insert(
+            &mut map,
+            format!("crate::{include_path}::{name}"),
+            format!("{}", foreign_key),
+        );
+
+        // import the foreign key type
         insert(
             &mut map,
             format!("crate::{include_path}::{name}"),
             format!("{}Key", foreign_key),
+        );
+
+        // import indexable trait so we can query foreign keys
+        insert(
+            &mut map,
+            "crate",
+            "Indexable",
         );
     }
 
@@ -222,86 +239,11 @@ fn create_row(s: &mut Writer, d: &DbcDescription, o: &Objects) {
             s.wln(format!("pub {name}: {ty},"));
         }
     });
-}
 
-fn create_primary_keys(s: &mut Writer, d: &DbcDescription) {
-    if let Some((key, ty)) = d.primary_key() {
-        let native_ty = ty.rust_str();
-
-        if not_pascal_case_name(d.name()) {
-            s.wln("#[allow(non_camel_case_types)]");
-        }
-        s.wln("#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]");
-
-        // add optional derive for serde
-        s.wln("#[cfg_attr(feature = \"serde\", derive(serde::Serialize, serde::Deserialize))]");
-
-        s.new_struct(key.ty().rust_str(), |s| {
-            s.wln(format!("pub id: {}", native_ty));
-        });
-
-        s.bodyn(format!("impl {}", key.ty().rust_str()), |s| {
-            s.bodyn(
-                format!("pub const fn new(id: {}) -> Self", native_ty),
-                |s| {
-                    s.wln("Self { id }");
-                },
-            );
-        });
-
-        create_primary_key_froms(s, key, ty);
-    }
-}
-
-fn create_primary_key_froms(s: &mut Writer, key: &Field, ty: &Type) {
-    let primary_key = key.ty().rust_str();
-    let original_ty = ty.rust_str();
-
-    let from_tys = match ty {
-        Type::I8 => ["i8", "isize"].as_slice(),
-        Type::I16 => ["u8", "i8", "i16", "isize"].as_slice(),
-        Type::I32 => ["u8", "u16", "i8", "i16", "i32"].as_slice(),
-        Type::U8 => ["u8", "usize"].as_slice(),
-        Type::U16 => ["u8", "u16", "usize"].as_slice(),
-        Type::U32 => ["u8", "u16", "u32"].as_slice(),
-        _ => unreachable!("invalid primary key"),
-    };
-
-    for t in from_tys {
-        s.bodyn(format!("impl From<{t}> for {primary_key}"), |s| {
-            s.body(format!("fn from(v: {t}) -> Self"), |s| {
-                if t == &original_ty {
-                    s.wln("Self::new(v)");
-                } else {
-                    s.wln("Self::new(v.into())");
-                }
-            });
-        });
-    }
-
-    let try_from_tys = match ty {
-        Type::I8 => ["u8", "u16", "u32", "u64", "usize", "i16", "i32", "i64"].as_slice(),
-        Type::I16 => ["u16", "u32", "u64", "usize", "i32", "i64"].as_slice(),
-        Type::I32 => ["u32", "usize", "u64", "i64", "isize"].as_slice(),
-        Type::U8 => ["u16", "u32", "u64", "i8", "i16", "i32", "i64", "isize"].as_slice(),
-        Type::U16 => ["u32", "u64", "i8", "i16", "i32", "i64", "isize"].as_slice(),
-        Type::U32 => ["u64", "usize", "i8", "i16", "i32", "i64", "isize"].as_slice(),
-        _ => unreachable!("invalid primary key"),
-    };
-
-    for t in try_from_tys {
-        s.bodyn(format!("impl TryFrom<{t}> for {primary_key}"), |s| {
-            s.wln(format!("type Error = {t};"));
-            s.body(
-                format!("fn try_from(v: {t}) -> Result<Self, Self::Error>"),
-                |s| {
-                    s.wln(format!(
-                        "Ok(TryInto::<{original_ty}>::try_into(v).ok().ok_or(v)?.into())"
-                    ));
-                },
-            );
-        });
-    }
+    // impl DbcRow for row struct
+    s.bodyn(format!("impl DbcRow for {}Row", d.name()), |s| {
+        // TODO: implement access to row fields
+    });
 }
 
 fn print_field_comment(s: &mut Writer, field: &Field) {

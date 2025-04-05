@@ -1,5 +1,5 @@
 use crate::{
-    DbcTable, Indexable, LocalizedString,
+    DbcRow, DbcTable, Indexable, LocalizedString,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
@@ -7,6 +7,9 @@ use crate::header::{
 use crate::tys::WritableString;
 use crate::util::StringCache;
 use std::io::Write;
+use super::VanillaTable;
+
+pub type FactionGroupKey = crate::PrimaryKey<u32, FactionGroup>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +17,27 @@ pub struct FactionGroup {
     pub rows: Vec<FactionGroupRow>,
 }
 
+impl FactionGroup {
+    pub const FILENAME: &'static str = "FactionGroup.dbc";
+    pub const FIELD_COUNT: usize = 12;
+    pub const ROW_SIZE: usize = 48;
+
+}
+
+impl Into<VanillaTable> for FactionGroup {
+    fn into(self) -> VanillaTable {
+        VanillaTable::FactionGroup(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for FactionGroup {
-    type Row = FactionGroupRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "FactionGroup.dbc";
-    const FIELD_COUNT: usize = 12;
-    const ROW_SIZE: usize = 48;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[FactionGroupRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [FactionGroupRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -120,96 +135,16 @@ impl DbcTable for FactionGroup {
 
 }
 
-impl Indexable for FactionGroup {
-    type PrimaryKey = FactionGroupKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for FactionGroup {
+    type Table = Self;
+
+    fn get(&self, key: &FactionGroupKey) -> Option<&FactionGroupRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct FactionGroupKey {
-    pub id: u32
-}
-
-impl FactionGroupKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for FactionGroupKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for FactionGroupKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for FactionGroupKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for FactionGroupKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for FactionGroupKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for FactionGroupKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for FactionGroupKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for FactionGroupKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for FactionGroupKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for FactionGroupKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &FactionGroupKey) -> Option<&mut FactionGroupRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -220,6 +155,9 @@ pub struct FactionGroupRow {
     pub mask_id: u32,
     pub internal_name: String,
     pub name: LocalizedString,
+}
+
+impl DbcRow for FactionGroupRow {
 }
 
 #[cfg(test)]

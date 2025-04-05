@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::particle_color::ParticleColorKey;
-use crate::wrath_tables::spell_visual::SpellVisualKey;
+use crate::wrath_tables::particle_color::{
+    ParticleColor, ParticleColorKey,
+};
+use crate::wrath_tables::spell_visual::{
+    SpellVisual, SpellVisualKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type ItemDisplayInfoKey = crate::PrimaryKey<i32, ItemDisplayInfo>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct ItemDisplayInfo {
     pub rows: Vec<ItemDisplayInfoRow>,
 }
 
+impl ItemDisplayInfo {
+    pub const FILENAME: &'static str = "ItemDisplayInfo.dbc";
+    pub const FIELD_COUNT: usize = 25;
+    pub const ROW_SIZE: usize = 100;
+
+    pub fn verify(&self, particle_color: &ParticleColor, spell_visual: &SpellVisual) -> Result<(), crate::InvalidForeignKeyError<&ItemDisplayInfoRow>> {
+        for row in &self.rows {
+            if row.spell_visual_id.id != 0 && spell_visual.get(&row.spell_visual_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ItemDisplayInfo>(),
+                    row,
+                    id,
+                    row.spell_visual_id.id.into()
+                ));
+            }
+
+            if row.particle_color_id.id != 0 && particle_color.get(&row.particle_color_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<ItemDisplayInfo>(),
+                    row,
+                    id,
+                    row.particle_color_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for ItemDisplayInfo {
+    fn into(self) -> WrathTable {
+        WrathTable::ItemDisplayInfo(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for ItemDisplayInfo {
-    type Row = ItemDisplayInfoRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "ItemDisplayInfo.dbc";
-    const FIELD_COUNT: usize = 25;
-    const ROW_SIZE: usize = 100;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[ItemDisplayInfoRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [ItemDisplayInfoRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -236,94 +282,16 @@ impl DbcTable for ItemDisplayInfo {
 
 }
 
-impl Indexable for ItemDisplayInfo {
-    type PrimaryKey = ItemDisplayInfoKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for ItemDisplayInfo {
+    type Table = Self;
+
+    fn get(&self, key: &ItemDisplayInfoKey) -> Option<&ItemDisplayInfoRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct ItemDisplayInfoKey {
-    pub id: i32
-}
-
-impl ItemDisplayInfoKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for ItemDisplayInfoKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for ItemDisplayInfoKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for ItemDisplayInfoKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for ItemDisplayInfoKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for ItemDisplayInfoKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for ItemDisplayInfoKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for ItemDisplayInfoKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for ItemDisplayInfoKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for ItemDisplayInfoKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for ItemDisplayInfoKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &ItemDisplayInfoKey) -> Option<&mut ItemDisplayInfoRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -342,6 +310,9 @@ pub struct ItemDisplayInfoRow {
     pub texture: [String; 8],
     pub item_visual: i32,
     pub particle_color_id: ParticleColorKey,
+}
+
+impl DbcRow for ItemDisplayInfoRow {
 }
 
 #[cfg(test)]

@@ -1,16 +1,27 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::achievement_category::Achievement_CategoryKey;
-use crate::wrath_tables::faction::FactionKey;
-use crate::wrath_tables::map::MapKey;
-use crate::wrath_tables::spell_icon::SpellIconKey;
+use crate::wrath_tables::achievement_category::{
+    Achievement_Category, Achievement_CategoryKey,
+};
+use crate::wrath_tables::faction::{
+    Faction, FactionKey,
+};
+use crate::wrath_tables::map::{
+    Map, MapKey,
+};
+use crate::wrath_tables::spell_icon::{
+    SpellIcon, SpellIconKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type AchievementKey = crate::PrimaryKey<i32, Achievement>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -18,15 +29,94 @@ pub struct Achievement {
     pub rows: Vec<AchievementRow>,
 }
 
+impl Achievement {
+    pub const FILENAME: &'static str = "Achievement.dbc";
+    pub const FIELD_COUNT: usize = 62;
+    pub const ROW_SIZE: usize = 248;
+
+    pub fn verify(&self, achievement_category: &Achievement_Category, faction: &Faction, map: &Map, spell_icon: &SpellIcon) -> Result<(), crate::InvalidForeignKeyError<&AchievementRow>> {
+        for row in &self.rows {
+            if row.faction.id != 0 && faction.get(&row.faction).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.faction.id.into()
+                ));
+            }
+
+            if row.instance_id.id != 0 && map.get(&row.instance_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.instance_id.id.into()
+                ));
+            }
+
+            if row.supercedes.id != 0 && self.get(&row.supercedes).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.supercedes.id.into()
+                ));
+            }
+
+            if row.category.id != 0 && achievement_category.get(&row.category).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.category.id.into()
+                ));
+            }
+
+            if row.icon_id.id != 0 && spell_icon.get(&row.icon_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.icon_id.id.into()
+                ));
+            }
+
+            if row.shares_criteria.id != 0 && self.get(&row.shares_criteria).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<Achievement>(),
+                    row,
+                    id,
+                    row.shares_criteria.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for Achievement {
+    fn into(self) -> WrathTable {
+        WrathTable::Achievement(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for Achievement {
-    type Row = AchievementRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "Achievement.dbc";
-    const FIELD_COUNT: usize = 62;
-    const ROW_SIZE: usize = 248;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[AchievementRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [AchievementRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -191,94 +281,16 @@ impl DbcTable for Achievement {
 
 }
 
-impl Indexable for Achievement {
-    type PrimaryKey = AchievementKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for Achievement {
+    type Table = Self;
+
+    fn get(&self, key: &AchievementKey) -> Option<&AchievementRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AchievementKey {
-    pub id: i32
-}
-
-impl AchievementKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for AchievementKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for AchievementKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for AchievementKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for AchievementKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for AchievementKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for AchievementKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for AchievementKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for AchievementKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for AchievementKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for AchievementKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &AchievementKey) -> Option<&mut AchievementRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -299,6 +311,9 @@ pub struct AchievementRow {
     pub reward_lang: ExtendedLocalizedString,
     pub minimum_criteria: i32,
     pub shares_criteria: AchievementKey,
+}
+
+impl DbcRow for AchievementRow {
 }
 
 #[cfg(test)]

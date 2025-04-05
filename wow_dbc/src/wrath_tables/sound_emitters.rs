@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::map::MapKey;
-use crate::wrath_tables::sound_entries_advanced::SoundEntriesAdvancedKey;
+use crate::wrath_tables::map::{
+    Map, MapKey,
+};
+use crate::wrath_tables::sound_entries_advanced::{
+    SoundEntriesAdvanced, SoundEntriesAdvancedKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type SoundEmittersKey = crate::PrimaryKey<i32, SoundEmitters>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct SoundEmitters {
     pub rows: Vec<SoundEmittersRow>,
 }
 
+impl SoundEmitters {
+    pub const FILENAME: &'static str = "SoundEmitters.dbc";
+    pub const FIELD_COUNT: usize = 10;
+    pub const ROW_SIZE: usize = 40;
+
+    pub fn verify(&self, map: &Map, sound_entries_advanced: &SoundEntriesAdvanced) -> Result<(), crate::InvalidForeignKeyError<&SoundEmittersRow>> {
+        for row in &self.rows {
+            if row.sound_entry_advanced_id.id != 0 && sound_entries_advanced.get(&row.sound_entry_advanced_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SoundEmitters>(),
+                    row,
+                    id,
+                    row.sound_entry_advanced_id.id.into()
+                ));
+            }
+
+            if row.map_id.id != 0 && map.get(&row.map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<SoundEmitters>(),
+                    row,
+                    id,
+                    row.map_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for SoundEmitters {
+    fn into(self) -> WrathTable {
+        WrathTable::SoundEmitters(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for SoundEmitters {
-    type Row = SoundEmittersRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "SoundEmitters.dbc";
-    const FIELD_COUNT: usize = 10;
-    const ROW_SIZE: usize = 40;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[SoundEmittersRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [SoundEmittersRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -141,94 +187,16 @@ impl DbcTable for SoundEmitters {
 
 }
 
-impl Indexable for SoundEmitters {
-    type PrimaryKey = SoundEmittersKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for SoundEmitters {
+    type Table = Self;
+
+    fn get(&self, key: &SoundEmittersKey) -> Option<&SoundEmittersRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SoundEmittersKey {
-    pub id: i32
-}
-
-impl SoundEmittersKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for SoundEmittersKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for SoundEmittersKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for SoundEmittersKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for SoundEmittersKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for SoundEmittersKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for SoundEmittersKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for SoundEmittersKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for SoundEmittersKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for SoundEmittersKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for SoundEmittersKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &SoundEmittersKey) -> Option<&mut SoundEmittersRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -241,6 +209,9 @@ pub struct SoundEmittersRow {
     pub sound_entry_advanced_id: SoundEntriesAdvancedKey,
     pub map_id: MapKey,
     pub name: String,
+}
+
+impl DbcRow for SoundEmittersRow {
 }
 
 #[cfg(test)]

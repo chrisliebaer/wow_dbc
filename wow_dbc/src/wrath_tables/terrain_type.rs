@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct TerrainType {
     pub rows: Vec<TerrainTypeRow>,
 }
 
+impl TerrainType {
+    pub const FILENAME: &'static str = "TerrainType.dbc";
+    pub const FIELD_COUNT: usize = 6;
+    pub const ROW_SIZE: usize = 24;
+
+}
+
+impl Into<WrathTable> for TerrainType {
+    fn into(self) -> WrathTable {
+        WrathTable::TerrainType(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for TerrainType {
-    type Row = TerrainTypeRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "TerrainType.dbc";
-    const FIELD_COUNT: usize = 6;
-    const ROW_SIZE: usize = 24;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[TerrainTypeRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [TerrainTypeRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -140,6 +155,9 @@ pub struct TerrainTypeRow {
     pub footstep_spray_walk: i32,
     pub sound_id: i32,
     pub flags: i32,
+}
+
+impl DbcRow for TerrainTypeRow {
 }
 
 #[cfg(test)]

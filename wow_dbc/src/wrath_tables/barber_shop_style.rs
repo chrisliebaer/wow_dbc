@@ -1,13 +1,18 @@
 use crate::{
-    DbcTable, ExtendedLocalizedString, Indexable,
+    DbcRow, DbcTable, ExtendedLocalizedString, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tys::WritableString;
 use crate::util::StringCache;
-use crate::wrath_tables::chr_races::ChrRacesKey;
+use crate::wrath_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type BarberShopStyleKey = crate::PrimaryKey<i32, BarberShopStyle>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +20,44 @@ pub struct BarberShopStyle {
     pub rows: Vec<BarberShopStyleRow>,
 }
 
+impl BarberShopStyle {
+    pub const FILENAME: &'static str = "BarberShopStyle.dbc";
+    pub const FIELD_COUNT: usize = 40;
+    pub const ROW_SIZE: usize = 160;
+
+    pub fn verify(&self, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&BarberShopStyleRow>> {
+        for row in &self.rows {
+            if row.race.id != 0 && chr_races.get(&row.race).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<BarberShopStyle>(),
+                    row,
+                    id,
+                    row.race.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for BarberShopStyle {
+    fn into(self) -> WrathTable {
+        WrathTable::BarberShopStyle(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for BarberShopStyle {
-    type Row = BarberShopStyleRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "BarberShopStyle.dbc";
-    const FIELD_COUNT: usize = 40;
-    const ROW_SIZE: usize = 160;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[BarberShopStyleRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [BarberShopStyleRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -146,94 +180,16 @@ impl DbcTable for BarberShopStyle {
 
 }
 
-impl Indexable for BarberShopStyle {
-    type PrimaryKey = BarberShopStyleKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for BarberShopStyle {
+    type Table = Self;
+
+    fn get(&self, key: &BarberShopStyleKey) -> Option<&BarberShopStyleRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct BarberShopStyleKey {
-    pub id: i32
-}
-
-impl BarberShopStyleKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for BarberShopStyleKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for BarberShopStyleKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for BarberShopStyleKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for BarberShopStyleKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for BarberShopStyleKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for BarberShopStyleKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for BarberShopStyleKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for BarberShopStyleKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for BarberShopStyleKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for BarberShopStyleKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &BarberShopStyleKey) -> Option<&mut BarberShopStyleRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -248,6 +204,9 @@ pub struct BarberShopStyleRow {
     pub race: ChrRacesKey,
     pub sex: i32,
     pub data: i32,
+}
+
+impl DbcRow for BarberShopStyleRow {
 }
 
 #[cfg(test)]

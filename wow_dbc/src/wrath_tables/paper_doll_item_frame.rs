@@ -1,9 +1,12 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -11,15 +14,27 @@ pub struct PaperDollItemFrame {
     pub rows: Vec<PaperDollItemFrameRow>,
 }
 
+impl PaperDollItemFrame {
+    pub const FILENAME: &'static str = "PaperDollItemFrame.dbc";
+    pub const FIELD_COUNT: usize = 3;
+    pub const ROW_SIZE: usize = 12;
+
+}
+
+impl Into<WrathTable> for PaperDollItemFrame {
+    fn into(self) -> WrathTable {
+        WrathTable::PaperDollItemFrame(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for PaperDollItemFrame {
-    type Row = PaperDollItemFrameRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "PaperDollItemFrame.dbc";
-    const FIELD_COUNT: usize = 3;
-    const ROW_SIZE: usize = 12;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[PaperDollItemFrameRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [PaperDollItemFrameRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -119,6 +134,9 @@ pub struct PaperDollItemFrameRow {
     pub item_button_name: String,
     pub slot_icon: String,
     pub slot_number: i32,
+}
+
+impl DbcRow for PaperDollItemFrameRow {
 }
 
 #[cfg(test)]

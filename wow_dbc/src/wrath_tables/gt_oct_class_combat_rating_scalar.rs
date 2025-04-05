@@ -1,11 +1,14 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
 use std::io::Write;
+use super::WrathTable;
+
+pub type gtOCTClassCombatRatingScalarKey = crate::PrimaryKey<i32, gtOCTClassCombatRatingScalar>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -13,15 +16,27 @@ pub struct gtOCTClassCombatRatingScalar {
     pub rows: Vec<gtOCTClassCombatRatingScalarRow>,
 }
 
+impl gtOCTClassCombatRatingScalar {
+    pub const FILENAME: &'static str = "gtOCTClassCombatRatingScalar.dbc";
+    pub const FIELD_COUNT: usize = 2;
+    pub const ROW_SIZE: usize = 8;
+
+}
+
+impl Into<WrathTable> for gtOCTClassCombatRatingScalar {
+    fn into(self) -> WrathTable {
+        WrathTable::gtOCTClassCombatRatingScalar(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for gtOCTClassCombatRatingScalar {
-    type Row = gtOCTClassCombatRatingScalarRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "gtOCTClassCombatRatingScalar.dbc";
-    const FIELD_COUNT: usize = 2;
-    const ROW_SIZE: usize = 8;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[gtOCTClassCombatRatingScalarRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [gtOCTClassCombatRatingScalarRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -100,94 +115,16 @@ impl DbcTable for gtOCTClassCombatRatingScalar {
 
 }
 
-impl Indexable for gtOCTClassCombatRatingScalar {
-    type PrimaryKey = gtOCTClassCombatRatingScalarKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for gtOCTClassCombatRatingScalar {
+    type Table = Self;
+
+    fn get(&self, key: &gtOCTClassCombatRatingScalarKey) -> Option<&gtOCTClassCombatRatingScalarRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct gtOCTClassCombatRatingScalarKey {
-    pub id: i32
-}
-
-impl gtOCTClassCombatRatingScalarKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for gtOCTClassCombatRatingScalarKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for gtOCTClassCombatRatingScalarKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for gtOCTClassCombatRatingScalarKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for gtOCTClassCombatRatingScalarKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for gtOCTClassCombatRatingScalarKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for gtOCTClassCombatRatingScalarKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for gtOCTClassCombatRatingScalarKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for gtOCTClassCombatRatingScalarKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for gtOCTClassCombatRatingScalarKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for gtOCTClassCombatRatingScalarKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &gtOCTClassCombatRatingScalarKey) -> Option<&mut gtOCTClassCombatRatingScalarRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -196,6 +133,9 @@ impl TryFrom<isize> for gtOCTClassCombatRatingScalarKey {
 pub struct gtOCTClassCombatRatingScalarRow {
     pub id: gtOCTClassCombatRatingScalarKey,
     pub data: f32,
+}
+
+impl DbcRow for gtOCTClassCombatRatingScalarRow {
 }
 
 #[cfg(test)]

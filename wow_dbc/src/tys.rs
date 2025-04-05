@@ -194,7 +194,6 @@ impl WritableString for LocalizedString {
 }
 
 pub(crate) trait WritableString {
-
     /// Returns a slice of strings, represented by the implementing type.
     fn strings(&self) -> Box<[&str]>;
 
@@ -213,3 +212,142 @@ pub(crate) trait WritableString {
         arr.into_boxed_slice()
     }
 }
+
+
+/// Primary key for a `Table` with a primary key of type `Integer`.
+#[derive(Debug, Default)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct PrimaryKey<Integer, Table>
+where
+    Table: crate::Indexable<Integer> + crate::DbcTable,
+{
+    /// The primary key value.
+    pub id: Integer,
+
+    /// Phantom data to ensure that the primary key is only used with the correct table type.
+    _marker: std::marker::PhantomData<Table>,
+}
+
+// ***********************
+// Start of manual derives
+// ***********************
+// This section is required since basically all derives are not implemented for `PhantomData`.
+
+// impl `PartialEq`
+impl<I, T> PartialEq for PrimaryKey<I, T>
+where
+    I: PartialEq,
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+// impl `Eq`
+impl<I, T> Eq for PrimaryKey<I, T>
+where
+    I: Eq,
+    T: crate::Indexable<I> + crate::DbcTable,
+{}
+
+// impl `PartialOrd`
+impl<I, T> PartialOrd for PrimaryKey<I, T>
+where
+    I: PartialOrd,
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+
+// impl `Ord`
+impl<I, T> Ord for PrimaryKey<I, T>
+where
+    I: Ord,
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+// impl `Hash`
+impl<I, T> std::hash::Hash for PrimaryKey<I, T>
+where
+    I: std::hash::Hash,
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+// impl `Clone`
+impl<I, T> Clone for PrimaryKey<I, T>
+where
+    I: Clone,
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    fn clone(&self) -> Self {
+        Self::new(self.id.clone())
+    }
+}
+
+// impl `Copy`
+impl<I, T> Copy for PrimaryKey<I, T>
+where
+    I: Copy,
+    T: crate::Indexable<I> + crate::DbcTable,
+{}
+
+// *********************
+// End of manual derives
+// *********************
+
+
+impl<I, T> PrimaryKey<I, T>
+where
+    T: crate::Indexable<I> + crate::DbcTable,
+{
+    /// Creates a new primary key from the given value.
+    pub const fn new(id: I) -> Self {
+        Self {
+            id,
+            _marker: std::marker::PhantomData,
+        }
+    }
+
+    /// Casts the primary key to a key for a different table type.
+    pub fn cast_table_key<NewTable>(self) -> PrimaryKey<I, NewTable>
+    where
+        NewTable: crate::Indexable<I> + crate::DbcTable,
+    {
+        PrimaryKey::new(self.id)
+    }
+}
+
+
+/// Macro for generating `From` implementations for `PrimaryKey` types.
+macro_rules! impl_from_for_primary_key {
+    ($($int_ty:ty),+) => {
+        $(
+            impl<T, V> From<V> for PrimaryKey<$int_ty, T>
+            where
+                V: Into<$int_ty>,
+                T: crate::Indexable<$int_ty> + crate::DbcTable,
+            {
+                fn from(v: V) -> Self {
+                    Self::new(v.into())
+                }
+            }
+        )*
+    };
+}
+
+// Implement `From` for all integer types that can be used as primary keys.
+// We can't use a generic impl for all Into<T> because this would conflict with the
+// generic `impl From<T> for T;` in rust core. Solutions welcome.
+impl_from_for_primary_key!(i32);
+impl_from_for_primary_key!(u32);

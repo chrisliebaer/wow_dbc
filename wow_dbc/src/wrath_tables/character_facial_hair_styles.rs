@@ -1,10 +1,15 @@
-use crate::DbcTable;
+use crate::{
+    DbcRow, DbcTable, Indexable,
+};
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::chr_races::ChrRacesKey;
+use crate::wrath_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::WrathTable;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -12,15 +17,44 @@ pub struct CharacterFacialHairStyles {
     pub rows: Vec<CharacterFacialHairStylesRow>,
 }
 
+impl CharacterFacialHairStyles {
+    pub const FILENAME: &'static str = "CharacterFacialHairStyles.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+    pub fn verify(&self, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CharacterFacialHairStylesRow>> {
+        for row in &self.rows {
+            if row.race_id.id != 0 && chr_races.get(&row.race_id).is_none() {
+                let id = None;
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharacterFacialHairStyles>(),
+                    row,
+                    id,
+                    row.race_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for CharacterFacialHairStyles {
+    fn into(self) -> WrathTable {
+        WrathTable::CharacterFacialHairStyles(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharacterFacialHairStyles {
-    type Row = CharacterFacialHairStylesRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharacterFacialHairStyles.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharacterFacialHairStylesRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharacterFacialHairStylesRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -123,6 +157,9 @@ pub struct CharacterFacialHairStylesRow {
     pub sex_id: i32,
     pub variation_id: i32,
     pub geoset: [i32; 5],
+}
+
+impl DbcRow for CharacterFacialHairStylesRow {
 }
 
 #[cfg(test)]

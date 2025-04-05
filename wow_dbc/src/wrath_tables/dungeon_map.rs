@@ -1,13 +1,20 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::area_table::AreaTableKey;
-use crate::wrath_tables::map::MapKey;
+use crate::wrath_tables::area_table::{
+    AreaTable, AreaTableKey,
+};
+use crate::wrath_tables::map::{
+    Map, MapKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type DungeonMapKey = crate::PrimaryKey<i32, DungeonMap>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -15,15 +22,54 @@ pub struct DungeonMap {
     pub rows: Vec<DungeonMapRow>,
 }
 
+impl DungeonMap {
+    pub const FILENAME: &'static str = "DungeonMap.dbc";
+    pub const FIELD_COUNT: usize = 8;
+    pub const ROW_SIZE: usize = 32;
+
+    pub fn verify(&self, area_table: &AreaTable, map: &Map) -> Result<(), crate::InvalidForeignKeyError<&DungeonMapRow>> {
+        for row in &self.rows {
+            if row.map_id.id != 0 && map.get(&row.map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DungeonMap>(),
+                    row,
+                    id,
+                    row.map_id.id.into()
+                ));
+            }
+
+            if row.parent_world_map_id.id != 0 && area_table.get(&row.parent_world_map_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<DungeonMap>(),
+                    row,
+                    id,
+                    row.parent_world_map_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for DungeonMap {
+    fn into(self) -> WrathTable {
+        WrathTable::DungeonMap(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for DungeonMap {
-    type Row = DungeonMapRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "DungeonMap.dbc";
-    const FIELD_COUNT: usize = 8;
-    const ROW_SIZE: usize = 32;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[DungeonMapRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [DungeonMapRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -144,94 +190,16 @@ impl DbcTable for DungeonMap {
 
 }
 
-impl Indexable for DungeonMap {
-    type PrimaryKey = DungeonMapKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for DungeonMap {
+    type Table = Self;
+
+    fn get(&self, key: &DungeonMapKey) -> Option<&DungeonMapRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct DungeonMapKey {
-    pub id: i32
-}
-
-impl DungeonMapKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for DungeonMapKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for DungeonMapKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for DungeonMapKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for DungeonMapKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for DungeonMapKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for DungeonMapKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for DungeonMapKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for DungeonMapKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for DungeonMapKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for DungeonMapKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &DungeonMapKey) -> Option<&mut DungeonMapRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -246,6 +214,9 @@ pub struct DungeonMapRow {
     pub min_y: f32,
     pub max_y: f32,
     pub parent_world_map_id: AreaTableKey,
+}
+
+impl DbcRow for DungeonMapRow {
 }
 
 #[cfg(test)]

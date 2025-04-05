@@ -1,14 +1,21 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::vanilla_tables::chr_classes::ChrClassesKey;
-use crate::vanilla_tables::chr_races::ChrRacesKey;
+use crate::vanilla_tables::chr_classes::{
+    ChrClasses, ChrClassesKey,
+};
+use crate::vanilla_tables::chr_races::{
+    ChrRaces, ChrRacesKey,
+};
 use std::io::Write;
+use super::VanillaTable;
 use wow_world_base::vanilla::Gender;
+
+pub type CharStartOutfitKey = crate::PrimaryKey<u32, CharStartOutfit>;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -16,15 +23,54 @@ pub struct CharStartOutfit {
     pub rows: Vec<CharStartOutfitRow>,
 }
 
+impl CharStartOutfit {
+    pub const FILENAME: &'static str = "CharStartOutfit.dbc";
+    pub const FIELD_COUNT: usize = 41;
+    pub const ROW_SIZE: usize = 152;
+
+    pub fn verify(&self, chr_classes: &ChrClasses, chr_races: &ChrRaces) -> Result<(), crate::InvalidForeignKeyError<&CharStartOutfitRow>> {
+        for row in &self.rows {
+            if row.race.id != 0 && chr_races.get(&row.race).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharStartOutfit>(),
+                    row,
+                    id,
+                    row.race.id.into()
+                ));
+            }
+
+            if row.class.id != 0 && chr_classes.get(&row.class).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<CharStartOutfit>(),
+                    row,
+                    id,
+                    row.class.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<VanillaTable> for CharStartOutfit {
+    fn into(self) -> VanillaTable {
+        VanillaTable::CharStartOutfit(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for CharStartOutfit {
-    type Row = CharStartOutfitRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "CharStartOutfit.dbc";
-    const FIELD_COUNT: usize = 41;
-    const ROW_SIZE: usize = 152;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[CharStartOutfitRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [CharStartOutfitRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -154,96 +200,16 @@ impl DbcTable for CharStartOutfit {
 
 }
 
-impl Indexable for CharStartOutfit {
-    type PrimaryKey = CharStartOutfitKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<u32> for CharStartOutfit {
+    type Table = Self;
+
+    fn get(&self, key: &CharStartOutfitKey) -> Option<&CharStartOutfitRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CharStartOutfitKey {
-    pub id: u32
-}
-
-impl CharStartOutfitKey {
-    pub const fn new(id: u32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for CharStartOutfitKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for CharStartOutfitKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u32> for CharStartOutfitKey {
-    fn from(v: u32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u64> for CharStartOutfitKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for CharStartOutfitKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i8> for CharStartOutfitKey {
-    type Error = i8;
-    fn try_from(v: i8) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i16> for CharStartOutfitKey {
-    type Error = i16;
-    fn try_from(v: i16) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i32> for CharStartOutfitKey {
-    type Error = i32;
-    fn try_from(v: i32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for CharStartOutfitKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for CharStartOutfitKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<u32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &CharStartOutfitKey) -> Option<&mut CharStartOutfitRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -258,6 +224,9 @@ pub struct CharStartOutfitRow {
     pub item_id: [i32; 12],
     pub display_id: [i32; 12],
     pub inv_slot_id: [i32; 12],
+}
+
+impl DbcRow for CharStartOutfitRow {
 }
 
 #[cfg(test)]

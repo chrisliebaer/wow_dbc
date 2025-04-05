@@ -57,18 +57,19 @@
 #![allow(clippy::useless_conversion)]
 #![allow(non_camel_case_types)]
 #![warn(
-clippy::perf,
-clippy::correctness,
-clippy::style,
-clippy::missing_const_for_fn,
-clippy::missing_errors_doc,
-clippy::missing_panics_doc,
-clippy::doc_markdown,
-clippy::unseparated_literal_suffix,
-missing_docs
+    clippy::perf,
+    clippy::correctness,
+    clippy::style,
+    clippy::missing_const_for_fn,
+    clippy::missing_errors_doc,
+    clippy::missing_panics_doc,
+    clippy::doc_markdown,
+    clippy::unseparated_literal_suffix,
+    missing_docs
 )]
 
-use std::io::{Read, Write};
+use std::fmt::Debug;
+use std::io::{Error, Read, Write};
 
 pub(crate) mod error;
 
@@ -99,22 +100,21 @@ mod util;
 
 /// Main trait for the crate. Implemented by all tables in [`vanilla_tables`].
 pub trait DbcTable: Sized {
-    /// Will be the name of the implementing type suffixed with `Row`.
-    type Row;
 
     /// The name of the DBC file _with_ `.dbc` at the end.
-    const FILENAME: &'static str;
+    fn filename(&self) -> &'static str;
 
     /// The number of fields per row.
-    const FIELD_COUNT: usize;
+    fn field_count(&self) -> usize;
 
     /// The size of each row in bytes.
-    const ROW_SIZE: usize;
+    fn row_size(&self) -> usize;
 
     /// Array of all rows. Are not guaranteed to be in any order.
-    fn rows(&self) -> &[Self::Row];
+    fn rows(&self) -> &[impl DbcRow];
+
     /// Mutable array of all rows. Are not guaranteed to be in any order.
-    fn rows_mut(&mut self) -> &mut [Self::Row];
+    fn rows_mut(&mut self) -> &mut [impl DbcRow];
 
     /// Read table from bytes.
     ///
@@ -133,7 +133,7 @@ pub trait DbcTable: Sized {
     /// # Errors
     ///
     /// Returns the same errors as [`Write::write_all`].
-    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error>;
+    fn write(&self, w: &mut impl Write) -> Result<(), Error>;
 }
 
 /// Implemented by tables that have a primary key.
@@ -142,15 +142,53 @@ pub trait DbcTable: Sized {
 /// those traits do not return [`Option`]s and only have the possibility of panicking on invalid keys.
 ///
 /// The original DBCs do not really respect primary/foreign keys, so this just seemed like it would make everything more annoying.
-pub trait Indexable: DbcTable {
-    /// Key used to index into the table. Same name as the table suffixed with `Key`.
-    type PrimaryKey;
+pub trait Indexable<Ty>: DbcTable {
+    type Table: DbcTable + Indexable<Ty>;
 
-    /// Gets the primary key, if present. Internally this is just [`std::iter::Iterator::find`] since the
+    /// Gets the primary key, if present. Internally this is just [`Iterator::find`] since the
     /// items are not guaranteed to be ordered nor even be present.
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row>;
+    fn get(&self, key: &PrimaryKey<Ty, Self::Table>) -> Option<&impl DbcRow>;
 
-    /// Gets the primary key, if present. Internally this is just [`std::iter::Iterator::find`] since the
+    /// Gets the primary key, if present. Internally this is just [`Iterator::find`] since the
     /// items are not guaranteed to be ordered nor even be present.
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row>;
+    fn get_mut(&mut self, key: &PrimaryKey<Ty, Self::Table>) -> Option<&mut impl DbcRow>;
+}
+
+// TODO: implement common methods for this
+/// Common trait for all DBC rows.
+///
+/// Allows accessing the row data in a generic way.
+pub trait DbcRow: Debug + Sized {
+
+}
+
+
+
+/// This trait implements a way to load a table of a dynamic type via the `DynamicTable`.
+pub trait DbcTableEnum<DynamicTable> {
+
+    /// Attempts to load the table from the current enum variant from the reader.
+    fn load(self, b: &mut impl Read) -> Result<DynamicTable, DbcError>;
+}
+
+/// This trait implements a way to write a table stored in a dynamic enum variant to a writer.
+pub trait DbcTableWriter {
+
+    /// Attempts to write the table from the current enum variant to the writer.
+    fn write(self, w: &mut impl Write) -> Result<(), Error>;
+}
+
+/// Helper method for loading a table and converting it to the version specific enum.
+pub(crate) fn load_table_to_enum<Table, Out>(b: &mut impl Read) -> Result<Out, DbcError>
+where
+    Table: DbcTable,
+    Table: Into<Out>,
+{
+    Table::read(b).map(Into::into)
+}
+
+/// Used by the `verify` method to verify foreign keys in the table.
+pub trait OtherTableProvider<DynamicTable, Table: DbcTableEnum<DynamicTable>> {
+
+    fn get_table(&self, table: Table) -> Result<DynamicTable, DbcError>;
 }

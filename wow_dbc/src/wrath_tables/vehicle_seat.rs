@@ -1,12 +1,17 @@
 use crate::{
-    DbcTable, Indexable,
+    DbcRow, DbcTable, Indexable,
 };
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::util::StringCache;
-use crate::wrath_tables::sound_entries::SoundEntriesKey;
+use crate::wrath_tables::sound_entries::{
+    SoundEntries, SoundEntriesKey,
+};
 use std::io::Write;
+use super::WrathTable;
+
+pub type VehicleSeatKey = crate::PrimaryKey<i32, VehicleSeat>;
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -14,15 +19,44 @@ pub struct VehicleSeat {
     pub rows: Vec<VehicleSeatRow>,
 }
 
+impl VehicleSeat {
+    pub const FILENAME: &'static str = "VehicleSeat.dbc";
+    pub const FIELD_COUNT: usize = 58;
+    pub const ROW_SIZE: usize = 232;
+
+    pub fn verify(&self, sound_entries: &SoundEntries) -> Result<(), crate::InvalidForeignKeyError<&VehicleSeatRow>> {
+        for row in &self.rows {
+            if row.enter_u_i_sound_id.id != 0 && sound_entries.get(&row.enter_u_i_sound_id).is_none() {
+                let id = Some(row.id.id.into());
+                return Err(crate::InvalidForeignKeyError::new(
+                    std::any::type_name::<VehicleSeat>(),
+                    row,
+                    id,
+                    row.enter_u_i_sound_id.id.into()
+                ));
+            }
+
+        }
+
+        Ok(())
+    }
+
+}
+
+impl Into<WrathTable> for VehicleSeat {
+    fn into(self) -> WrathTable {
+        WrathTable::VehicleSeat(self)
+    }
+}
+
+#[allow(refining_impl_trait)]
 impl DbcTable for VehicleSeat {
-    type Row = VehicleSeatRow;
+    fn filename(&self) -> &'static str { Self::FILENAME }
+    fn field_count(&self) -> usize { Self::FIELD_COUNT }
+    fn row_size(&self) -> usize { Self::ROW_SIZE }
 
-    const FILENAME: &'static str = "VehicleSeat.dbc";
-    const FIELD_COUNT: usize = 58;
-    const ROW_SIZE: usize = 232;
-
-    fn rows(&self) -> &[Self::Row] { &self.rows }
-    fn rows_mut(&mut self) -> &mut [Self::Row] { &mut self.rows }
+    fn rows(&self) -> &[VehicleSeatRow] { &self.rows }
+    fn rows_mut(&mut self) -> &mut [VehicleSeatRow] { &mut self.rows }
 
     fn read(b: &mut impl std::io::Read) -> Result<Self, crate::DbcError> {
         let mut header = [0_u8; HEADER_SIZE];
@@ -482,94 +516,16 @@ impl DbcTable for VehicleSeat {
 
 }
 
-impl Indexable for VehicleSeat {
-    type PrimaryKey = VehicleSeatKey;
-    fn get(&self, key: impl TryInto<Self::PrimaryKey>) -> Option<&Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter().find(|a| a.id.id == key.id)
+#[allow(refining_impl_trait)]
+impl Indexable<i32> for VehicleSeat {
+    type Table = Self;
+
+    fn get(&self, key: &VehicleSeatKey) -> Option<&VehicleSeatRow> {
+        self.rows.iter().find(|a| &a.id == key)
     }
 
-    fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row> {
-        let key = key.try_into().ok()?;
-        self.rows.iter_mut().find(|a| a.id.id == key.id)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct VehicleSeatKey {
-    pub id: i32
-}
-
-impl VehicleSeatKey {
-    pub const fn new(id: i32) -> Self {
-        Self { id }
-    }
-
-}
-
-impl From<u8> for VehicleSeatKey {
-    fn from(v: u8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<u16> for VehicleSeatKey {
-    fn from(v: u16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i8> for VehicleSeatKey {
-    fn from(v: i8) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i16> for VehicleSeatKey {
-    fn from(v: i16) -> Self {
-        Self::new(v.into())
-    }
-}
-
-impl From<i32> for VehicleSeatKey {
-    fn from(v: i32) -> Self {
-        Self::new(v)
-    }
-}
-
-impl TryFrom<u32> for VehicleSeatKey {
-    type Error = u32;
-    fn try_from(v: u32) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<usize> for VehicleSeatKey {
-    type Error = usize;
-    fn try_from(v: usize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<u64> for VehicleSeatKey {
-    type Error = u64;
-    fn try_from(v: u64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<i64> for VehicleSeatKey {
-    type Error = i64;
-    fn try_from(v: i64) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
-    }
-}
-
-impl TryFrom<isize> for VehicleSeatKey {
-    type Error = isize;
-    fn try_from(v: isize) -> Result<Self, Self::Error> {
-        Ok(TryInto::<i32>::try_into(v).ok().ok_or(v)?.into())
+    fn get_mut(&mut self, key: &VehicleSeatKey) -> Option<&mut VehicleSeatRow> {
+        self.rows.iter_mut().find(|a| &a.id == key)
     }
 }
 
@@ -632,6 +588,9 @@ pub struct VehicleSeatRow {
     pub field_3_3_5_12213_053: f32,
     pub field_3_3_5_12213_054: f32,
     pub field_3_3_5_12213_055: f32,
+}
+
+impl DbcRow for VehicleSeatRow {
 }
 
 #[cfg(test)]
