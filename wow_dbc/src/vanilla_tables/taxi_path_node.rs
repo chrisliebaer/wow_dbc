@@ -4,6 +4,7 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use crate::vanilla_tables::map::MapKey;
 use crate::vanilla_tables::taxi_path::TaxiPathKey;
 use std::io::Write;
@@ -15,9 +16,9 @@ pub struct TaxiPathNode {
     pub rows: Vec<TaxiPathNodeRow>,
 }
 
-impl Into<VanillaTable> for TaxiPathNode {
-    fn into(self) -> VanillaTable {
-        VanillaTable::TaxiPathNode(self)
+impl From<TaxiPathNode> for VanillaTable {
+    fn from(val: TaxiPathNode) -> Self {
+        Self::TaxiPathNode(val)
     }
 }
 
@@ -106,15 +107,10 @@ impl DbcTable for TaxiPathNode {
         Ok(TaxiPathNode { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 36,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (TaxiPathNode) uint32
@@ -146,8 +142,17 @@ impl DbcTable for TaxiPathNode {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 36,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

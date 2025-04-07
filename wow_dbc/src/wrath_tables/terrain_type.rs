@@ -2,6 +2,7 @@ use crate::DbcTable;
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use std::io::Write;
 use super::WrathTable;
 
@@ -11,9 +12,9 @@ pub struct TerrainType {
     pub rows: Vec<TerrainTypeRow>,
 }
 
-impl Into<WrathTable> for TerrainType {
-    fn into(self) -> WrathTable {
-        WrathTable::TerrainType(self)
+impl From<TerrainType> for WrathTable {
+    fn from(val: TerrainType) -> Self {
+        Self::TerrainType(val)
     }
 }
 
@@ -95,29 +96,17 @@ impl DbcTable for TerrainType {
         Ok(TerrainType { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 24,
-            string_block_size: self.string_block_size(),
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let mut string_cache = StringCache::new();
 
-        let mut string_index = 1;
         for row in &self.rows {
             // terrain_id: int32
             b.write_all(&row.terrain_id.to_le_bytes())?;
 
             // terrain_desc: string_ref
-            if !row.terrain_desc.is_empty() {
-                b.write_all(&(string_index as u32).to_le_bytes())?;
-                string_index += row.terrain_desc.len() + 1;
-            }
-            else {
-                b.write_all(&(0_u32).to_le_bytes())?;
-            }
+            b.write_all(&string_cache.add_string(&row.terrain_desc).to_le_bytes())?;
 
             // footstep_spray_run: int32
             b.write_all(&row.footstep_spray_run.to_le_bytes())?;
@@ -133,31 +122,18 @@ impl DbcTable for TerrainType {
 
         }
 
-        self.write_string_block(b)?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 24,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
-    }
-
-}
-
-impl TerrainType {
-    fn write_string_block(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        b.write_all(&[0])?;
-
-        for row in &self.rows {
-            if !row.terrain_desc.is_empty() { b.write_all(row.terrain_desc.as_bytes())?; b.write_all(&[0])?; };
-        }
-
-        Ok(())
-    }
-
-    fn string_block_size(&self) -> u32 {
-        let mut sum = 1;
-        for row in &self.rows {
-            if !row.terrain_desc.is_empty() { sum += row.terrain_desc.len() + 1; };
-        }
-
-        sum as u32
     }
 
 }

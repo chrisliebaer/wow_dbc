@@ -5,6 +5,7 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tbc_tables::chr_races::ChrRacesKey;
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -14,9 +15,9 @@ pub struct VocalUISounds {
     pub rows: Vec<VocalUISoundsRow>,
 }
 
-impl Into<TbcTable> for VocalUISounds {
-    fn into(self) -> TbcTable {
-        TbcTable::VocalUISounds(self)
+impl From<VocalUISounds> for TbcTable {
+    fn from(val: VocalUISounds) -> Self {
+        Self::VocalUISounds(val)
     }
 }
 
@@ -89,15 +90,10 @@ impl DbcTable for VocalUISounds {
         Ok(VocalUISounds { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 28,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (VocalUISounds) int32
@@ -123,8 +119,17 @@ impl DbcTable for VocalUISounds {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 28,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

@@ -4,6 +4,7 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -13,9 +14,9 @@ pub struct WeaponImpactSounds {
     pub rows: Vec<WeaponImpactSoundsRow>,
 }
 
-impl Into<TbcTable> for WeaponImpactSounds {
-    fn into(self) -> TbcTable {
-        TbcTable::WeaponImpactSounds(self)
+impl From<WeaponImpactSounds> for TbcTable {
+    fn from(val: WeaponImpactSounds) -> Self {
+        Self::WeaponImpactSounds(val)
     }
 }
 
@@ -88,15 +89,10 @@ impl DbcTable for WeaponImpactSounds {
         Ok(WeaponImpactSounds { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 92,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (WeaponImpactSounds) int32
@@ -122,8 +118,17 @@ impl DbcTable for WeaponImpactSounds {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 92,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

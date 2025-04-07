@@ -10,6 +10,7 @@ use crate::tbc_tables::creature_sound_data::CreatureSoundDataKey;
 use crate::tbc_tables::npc_sounds::NPCSoundsKey;
 use crate::tbc_tables::particle_color::ParticleColorKey;
 use crate::tbc_tables::unit_blood::UnitBloodKey;
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -19,9 +20,9 @@ pub struct CreatureDisplayInfo {
     pub rows: Vec<CreatureDisplayInfoRow>,
 }
 
-impl Into<TbcTable> for CreatureDisplayInfo {
-    fn into(self) -> TbcTable {
-        TbcTable::CreatureDisplayInfo(self)
+impl From<CreatureDisplayInfo> for TbcTable {
+    fn from(val: CreatureDisplayInfo) -> Self {
+        Self::CreatureDisplayInfo(val)
     }
 }
 
@@ -138,17 +139,11 @@ impl DbcTable for CreatureDisplayInfo {
         Ok(CreatureDisplayInfo { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 56,
-            string_block_size: self.string_block_size(),
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let mut string_cache = StringCache::new();
 
-        let mut string_index = 1;
         for row in &self.rows {
             // id: primary_key (CreatureDisplayInfo) int32
             b.write_all(&row.id.id.to_le_bytes())?;
@@ -170,24 +165,12 @@ impl DbcTable for CreatureDisplayInfo {
 
             // texture_variation: string_ref[3]
             for i in &row.texture_variation {
-                if !i.is_empty() {
-                    b.write_all(&(string_index as u32).to_le_bytes())?;
-                    string_index += i.len() + 1;
-                }
-                else {
-                    b.write_all(&(0_u32).to_le_bytes())?;
-                }
+                b.write_all(&string_cache.add_string(i).to_le_bytes())?;
             }
 
 
             // portrait_texture_name: string_ref
-            if !row.portrait_texture_name.is_empty() {
-                b.write_all(&(string_index as u32).to_le_bytes())?;
-                string_index += row.portrait_texture_name.len() + 1;
-            }
-            else {
-                b.write_all(&(0_u32).to_le_bytes())?;
-            }
+            b.write_all(&string_cache.add_string(&row.portrait_texture_name).to_le_bytes())?;
 
             // size_class: int32
             b.write_all(&row.size_class.to_le_bytes())?;
@@ -203,8 +186,17 @@ impl DbcTable for CreatureDisplayInfo {
 
         }
 
-        self.write_string_block(b)?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 56,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 
@@ -221,36 +213,6 @@ impl Indexable for CreatureDisplayInfo {
         let key = key.try_into().ok()?;
         self.rows.iter_mut().find(|a| a.id.id == key.id)
     }
-}
-
-impl CreatureDisplayInfo {
-    fn write_string_block(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        b.write_all(&[0])?;
-
-        for row in &self.rows {
-            for s in &row.texture_variation {
-                if !s.is_empty() { b.write_all(s.as_bytes())?; b.write_all(&[0])?; };
-            }
-
-            if !row.portrait_texture_name.is_empty() { b.write_all(row.portrait_texture_name.as_bytes())?; b.write_all(&[0])?; };
-        }
-
-        Ok(())
-    }
-
-    fn string_block_size(&self) -> u32 {
-        let mut sum = 1;
-        for row in &self.rows {
-            for s in &row.texture_variation {
-                if !s.is_empty() { sum += s.len() + 1; };
-            }
-
-            if !row.portrait_texture_name.is_empty() { sum += row.portrait_texture_name.len() + 1; };
-        }
-
-        sum as u32
-    }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]

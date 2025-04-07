@@ -6,6 +6,7 @@ use crate::header::{
 };
 use crate::tbc_tables::skill_line::SkillLineKey;
 use crate::tbc_tables::skill_tiers::SkillTiersKey;
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -15,9 +16,9 @@ pub struct SkillRaceClassInfo {
     pub rows: Vec<SkillRaceClassInfoRow>,
 }
 
-impl Into<TbcTable> for SkillRaceClassInfo {
-    fn into(self) -> TbcTable {
-        TbcTable::SkillRaceClassInfo(self)
+impl From<SkillRaceClassInfo> for TbcTable {
+    fn from(val: SkillRaceClassInfo) -> Self {
+        Self::SkillRaceClassInfo(val)
     }
 }
 
@@ -102,15 +103,10 @@ impl DbcTable for SkillRaceClassInfo {
         Ok(SkillRaceClassInfo { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 32,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (SkillRaceClassInfo) int32
@@ -139,8 +135,17 @@ impl DbcTable for SkillRaceClassInfo {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 32,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

@@ -5,6 +5,7 @@ use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
 use crate::tbc_tables::sound_entries::SoundEntriesKey;
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -14,9 +15,9 @@ pub struct CinematicSequences {
     pub rows: Vec<CinematicSequencesRow>,
 }
 
-impl Into<TbcTable> for CinematicSequences {
-    fn into(self) -> TbcTable {
-        TbcTable::CinematicSequences(self)
+impl From<CinematicSequences> for TbcTable {
+    fn from(val: CinematicSequences) -> Self {
+        Self::CinematicSequences(val)
     }
 }
 
@@ -81,15 +82,10 @@ impl DbcTable for CinematicSequences {
         Ok(CinematicSequences { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 40,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (CinematicSequences) int32
@@ -106,8 +102,17 @@ impl DbcTable for CinematicSequences {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 40,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

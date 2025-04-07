@@ -4,6 +4,7 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use std::io::Write;
 use super::WrathTable;
 
@@ -13,9 +14,9 @@ pub struct SpellMissile {
     pub rows: Vec<SpellMissileRow>,
 }
 
-impl Into<WrathTable> for SpellMissile {
-    fn into(self) -> WrathTable {
-        WrathTable::SpellMissile(self)
+impl From<SpellMissile> for WrathTable {
+    fn from(val: SpellMissile) -> Self {
+        Self::SpellMissile(val)
     }
 }
 
@@ -128,15 +129,10 @@ impl DbcTable for SpellMissile {
         Ok(SpellMissile { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 60,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (SpellMissile) int32
@@ -186,8 +182,17 @@ impl DbcTable for SpellMissile {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 60,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 

@@ -4,6 +4,7 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use std::io::Write;
 use super::WrathTable;
 
@@ -13,9 +14,9 @@ pub struct AnimationData {
     pub rows: Vec<AnimationDataRow>,
 }
 
-impl Into<WrathTable> for AnimationData {
-    fn into(self) -> WrathTable {
-        WrathTable::AnimationData(self)
+impl From<AnimationData> for WrathTable {
+    fn from(val: AnimationData) -> Self {
+        Self::AnimationData(val)
     }
 }
 
@@ -105,29 +106,17 @@ impl DbcTable for AnimationData {
         Ok(AnimationData { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 32,
-            string_block_size: self.string_block_size(),
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let mut string_cache = StringCache::new();
 
-        let mut string_index = 1;
         for row in &self.rows {
             // id: primary_key (AnimationData) int32
             b.write_all(&row.id.id.to_le_bytes())?;
 
             // name: string_ref
-            if !row.name.is_empty() {
-                b.write_all(&(string_index as u32).to_le_bytes())?;
-                string_index += row.name.len() + 1;
-            }
-            else {
-                b.write_all(&(0_u32).to_le_bytes())?;
-            }
+            b.write_all(&string_cache.add_string(&row.name).to_le_bytes())?;
 
             // weaponflags: int32
             b.write_all(&row.weaponflags.to_le_bytes())?;
@@ -149,8 +138,17 @@ impl DbcTable for AnimationData {
 
         }
 
-        self.write_string_block(b)?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 32,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 
@@ -167,28 +165,6 @@ impl Indexable for AnimationData {
         let key = key.try_into().ok()?;
         self.rows.iter_mut().find(|a| a.id.id == key.id)
     }
-}
-
-impl AnimationData {
-    fn write_string_block(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        b.write_all(&[0])?;
-
-        for row in &self.rows {
-            if !row.name.is_empty() { b.write_all(row.name.as_bytes())?; b.write_all(&[0])?; };
-        }
-
-        Ok(())
-    }
-
-    fn string_block_size(&self) -> u32 {
-        let mut sum = 1;
-        for row in &self.rows {
-            if !row.name.is_empty() { sum += row.name.len() + 1; };
-        }
-
-        sum as u32
-    }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]

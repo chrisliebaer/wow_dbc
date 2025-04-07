@@ -155,11 +155,29 @@ pub trait Indexable: DbcTable {
     fn get_mut(&mut self, key: impl TryInto<Self::PrimaryKey>) -> Option<&mut Self::Row>;
 }
 
+/// Implemented by per-version enums to support dynamic loading of tables from runtime types.
 pub trait DbcTableEnum<TableEnum> {
+
+    /// Assume that the table behind the given reader is of the same type as the enum and try to load it.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Read::read_exact`].
+    ///
+    /// Will error with [`InvalidHeaderError`] if the magic numbers (`0x43424457`) at the start of the file do not match.
     fn load(self, b: &mut impl Read) -> Result<TableEnum, DbcError>;
 }
 
+/// Implemented by per-version enums to support dynamic writing of tables from runtime types.
 pub trait DbcTableWriter {
+
+    /// Write the table to the given writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Write::write_all`].
+    ///
+    /// Will error with [`InvalidHeaderError`] if the magic numbers (`0x43424457`) at the start of the file do not match.
     fn write(self, w: &mut impl Write) -> Result<(), Error>;
 }
 

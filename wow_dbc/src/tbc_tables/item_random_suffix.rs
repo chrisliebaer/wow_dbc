@@ -4,6 +4,8 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::tys::WritableString;
+use crate::util::StringCache;
 use std::io::Write;
 use super::TbcTable;
 
@@ -13,9 +15,9 @@ pub struct ItemRandomSuffix {
     pub rows: Vec<ItemRandomSuffixRow>,
 }
 
-impl Into<TbcTable> for ItemRandomSuffix {
-    fn into(self) -> TbcTable {
-        TbcTable::ItemRandomSuffix(self)
+impl From<ItemRandomSuffix> for TbcTable {
+    fn from(val: ItemRandomSuffix) -> Self {
+        Self::ItemRandomSuffix(val)
     }
 }
 
@@ -93,32 +95,20 @@ impl DbcTable for ItemRandomSuffix {
         Ok(ItemRandomSuffix { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 100,
-            string_block_size: self.string_block_size(),
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let mut string_cache = StringCache::new();
 
-        let mut string_index = 1;
         for row in &self.rows {
             // id: primary_key (ItemRandomSuffix) int32
             b.write_all(&row.id.id.to_le_bytes())?;
 
             // name_lang: string_ref_loc (Extended)
-            b.write_all(&row.name_lang.string_indices_as_array(&mut string_index))?;
+            b.write_all(&row.name_lang.string_indices_as_array(&mut string_cache))?;
 
             // internal_name: string_ref
-            if !row.internal_name.is_empty() {
-                b.write_all(&(string_index as u32).to_le_bytes())?;
-                string_index += row.internal_name.len() + 1;
-            }
-            else {
-                b.write_all(&(0_u32).to_le_bytes())?;
-            }
+            b.write_all(&string_cache.add_string(&row.internal_name).to_le_bytes())?;
 
             // enchantment: int32[3]
             for i in row.enchantment {
@@ -134,8 +124,17 @@ impl DbcTable for ItemRandomSuffix {
 
         }
 
-        self.write_string_block(b)?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 100,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 
@@ -152,30 +151,6 @@ impl Indexable for ItemRandomSuffix {
         let key = key.try_into().ok()?;
         self.rows.iter_mut().find(|a| a.id.id == key.id)
     }
-}
-
-impl ItemRandomSuffix {
-    fn write_string_block(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        b.write_all(&[0])?;
-
-        for row in &self.rows {
-            row.name_lang.string_block_as_array(b)?;
-            if !row.internal_name.is_empty() { b.write_all(row.internal_name.as_bytes())?; b.write_all(&[0])?; };
-        }
-
-        Ok(())
-    }
-
-    fn string_block_size(&self) -> u32 {
-        let mut sum = 1;
-        for row in &self.rows {
-            sum += row.name_lang.string_block_size();
-            if !row.internal_name.is_empty() { sum += row.internal_name.len() + 1; };
-        }
-
-        sum as u32
-    }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, Hash, Default)]

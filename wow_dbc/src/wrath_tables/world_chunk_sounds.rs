@@ -4,6 +4,7 @@ use crate::{
 use crate::header::{
     DbcHeader, HEADER_SIZE, parse_header,
 };
+use crate::util::StringCache;
 use crate::wrath_tables::sound_ambience::SoundAmbienceKey;
 use crate::wrath_tables::sound_provider_preferences::SoundProviderPreferencesKey;
 use crate::wrath_tables::zone_music::ZoneMusicKey;
@@ -16,9 +17,9 @@ pub struct WorldChunkSounds {
     pub rows: Vec<WorldChunkSoundsRow>,
 }
 
-impl Into<WrathTable> for WorldChunkSounds {
-    fn into(self) -> WrathTable {
-        WrathTable::WorldChunkSounds(self)
+impl From<WorldChunkSounds> for WrathTable {
+    fn from(val: WorldChunkSounds) -> Self {
+        Self::WorldChunkSounds(val)
     }
 }
 
@@ -107,15 +108,10 @@ impl DbcTable for WorldChunkSounds {
         Ok(WorldChunkSounds { rows, })
     }
 
-    fn write(&self, b: &mut impl Write) -> Result<(), std::io::Error> {
-        let header = DbcHeader {
-            record_count: self.rows.len() as u32,
-            field_count: Self::FIELD_COUNT as u32,
-            record_size: 36,
-            string_block_size: 1,
-        };
+    fn write(&self, w: &mut impl Write) -> Result<(), std::io::Error> {
+        let mut b = Vec::with_capacity(self.rows.len() * Self::ROW_SIZE);
 
-        b.write_all(&header.write_header())?;
+        let  string_cache = StringCache::new();
 
         for row in &self.rows {
             // id: primary_key (WorldChunkSounds) int32
@@ -147,8 +143,17 @@ impl DbcTable for WorldChunkSounds {
 
         }
 
-        b.write_all(&[0_u8])?;
+        assert_eq!(b.len(), self.rows.len() * Self::ROW_SIZE);
+        let header = DbcHeader {
+            record_count: self.rows.len() as u32,
+            field_count: Self::FIELD_COUNT as u32,
+            record_size: 36,
+            string_block_size: string_cache.size(),
+        };
 
+        w.write_all(&header.write_header())?;
+        w.write_all(&b)?;
+        w.write_all(string_cache.buffer())?;
         Ok(())
     }
 
